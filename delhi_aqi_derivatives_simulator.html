@@ -1,0 +1,588 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --ink:#1a1a18;--ink2:#5a5a56;--ink3:#9a9a94;
+    --surface:#ffffff;--surface2:#f5f4f0;--surface3:#eceae3;
+    --accent:#c84b1e;--accent2:#e8651a;
+    --green:#2d7a3a;--red:#b83232;
+    --border:rgba(0,0,0,0.1);
+    --ff:'Syne',sans-serif;--fm:'IBM Plex Mono',monospace;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --ink:#e8e6de;--ink2:#a8a69e;--ink3:#68665e;
+      --surface:#1c1b18;--surface2:#252420;--surface3:#2e2c28;
+      --border:rgba(255,255,255,0.1);
+    }
+  }
+  body{font-family:var(--ff);color:var(--ink);background:transparent;font-size:14px;line-height:1.5}
+  .wrap{padding:1.5rem 0;max-width:900px}
+  .header{margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:1rem}
+  .header h1{font-size:22px;font-weight:700;letter-spacing:-0.5px}
+  .header .sub{font-size:12px;color:var(--ink3);font-family:var(--fm);margin-top:4px}
+  .tabs{display:flex;gap:4px;margin-bottom:1.5rem;background:var(--surface2);padding:4px;border-radius:10px}
+  .tab{flex:1;padding:8px;text-align:center;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;color:var(--ink2);border:none;background:transparent;font-family:var(--ff);transition:all .15s}
+  .tab.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .panel{display:none}.panel.active{display:block}
+
+  /* MARKET PANEL */
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
+  .metric{background:var(--surface2);border-radius:10px;padding:12px 14px}
+  .metric .lbl{font-size:11px;color:var(--ink3);font-family:var(--fm);text-transform:uppercase;letter-spacing:.5px}
+  .metric .val{font-size:22px;font-weight:700;margin-top:2px;font-family:var(--fm)}
+  .metric .val.danger{color:var(--accent)}
+  .metric .val.ok{color:var(--green)}
+  .metric .chg{font-size:11px;margin-top:2px;font-family:var(--fm)}
+  .chg.up{color:#c84b1e}.chg.dn{color:var(--green)}
+
+  .two-col{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+  .card{background:var(--surface2);border-radius:12px;padding:16px}
+  .card h3{font-size:13px;font-weight:500;color:var(--ink2);margin-bottom:12px;font-family:var(--fm);text-transform:uppercase;letter-spacing:.5px}
+
+  .aqi-bar-wrap{margin-bottom:12px}
+  .aqi-bar{height:12px;border-radius:6px;background:linear-gradient(90deg,#4caf50 0%,#ffeb3b 25%,#ff9800 45%,#f44336 65%,#9c27b0 82%,#7b1010 100%);position:relative;margin:6px 0}
+  .aqi-needle{position:absolute;top:-4px;width:4px;height:20px;background:var(--ink);border-radius:2px;transform:translateX(-50%);transition:left .5s}
+  .aqi-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--ink3);font-family:var(--fm)}
+
+  .curve-chart{position:relative;width:100%;height:180px}
+
+  /* ORDER PANEL */
+  .order-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem}
+  .form-group{margin-bottom:12px}
+  .form-group label{display:block;font-size:11px;color:var(--ink2);font-family:var(--fm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+  select,input[type=number]{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--ink);font-family:var(--fm);font-size:13px}
+  .seg{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .seg button{flex:1;padding:9px;border:none;background:var(--surface);color:var(--ink2);font-family:var(--ff);font-size:13px;cursor:pointer;transition:all .12s}
+  .seg button.on{background:var(--accent);color:#fff}
+  .payoff-chart{position:relative;width:100%;height:200px}
+  .submit-btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-family:var(--ff);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;transition:opacity .15s}
+  .submit-btn:hover{opacity:.88}
+
+  /* POSITIONS PANEL */
+  .pos-table{width:100%;border-collapse:collapse;font-family:var(--fm);font-size:12px}
+  .pos-table th{text-align:left;padding:8px 12px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)}
+  .pos-table td{padding:10px 12px;border-bottom:0.5px solid var(--border)}
+  .pos-table tr:last-child td{border-bottom:none}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px}
+  .badge.long{background:#e8f5e9;color:#2d7a3a}.badge.short{background:#fce4e4;color:#b83232}
+  @media(prefers-color-scheme:dark){
+    .badge.long{background:#1a3a1e;color:#6dbf7a}.badge.short{background:#3a1a1a;color:#e07070}
+  }
+  .pnl.pos{color:var(--green)}.pnl.neg{color:var(--red)}
+  .empty-state{text-align:center;padding:40px 0;color:var(--ink3);font-size:13px}
+  .pos-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
+
+  /* ABOUT PANEL */
+  .about-section{margin-bottom:1.5rem}
+  .about-section h3{font-size:15px;font-weight:700;margin-bottom:8px}
+  .about-section p,.about-section li{font-size:13px;color:var(--ink2);line-height:1.7}
+  .about-section ul{padding-left:16px}
+  .about-section li{margin-bottom:4px}
+  .spec-table{width:100%;font-size:12px;border-collapse:collapse;font-family:var(--fm)}
+  .spec-table td{padding:8px 12px;border-bottom:0.5px solid var(--border);color:var(--ink2)}
+  .spec-table td:first-child{color:var(--ink);font-weight:500;width:45%}
+  .grap-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+  .grap-card{border-radius:8px;padding:10px 12px}
+  .grap-card .stage{font-size:11px;font-weight:700;margin-bottom:4px}
+  .grap-card .range{font-size:12px;margin-bottom:2px;font-family:var(--fm)}
+  .grap-card .desc{font-size:11px;opacity:.75}
+  .g1{background:#e8f5e9;color:#2d7a3a}.g2{background:#fff9c4;color:#856b00}.g3{background:#ffe0cc;color:#b84800}.g4{background:#fce4e4;color:#b83232}
+  @media(prefers-color-scheme:dark){
+    .g1{background:#1a2e1c;color:#7dcf8a}.g2{background:#2a2510;color:#d4b84a}.g3{background:#2e1a0c;color:#e08050}.g4{background:#2e1010;color:#e08080}
+  }
+  .tick-note{font-size:11px;font-family:var(--fm);color:var(--ink3);margin-top:8px}
+
+  @media(max-width:600px){
+    .metrics{grid-template-columns:repeat(2,1fr)}
+    .two-col{grid-template-columns:1fr}
+    .order-grid{grid-template-columns:1fr}
+    .grap-grid{grid-template-columns:repeat(2,1fr)}
+    .pos-summary{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+
+<div class="wrap">
+  <div class="header">
+    <h1>Delhi AQI Derivatives — Paper Trading Simulator</h1>
+    <div class="sub">DAQI Futures &amp; Options · Simulated Market · Not Financial Advice</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showPanel('market',this)">Market</button>
+    <button class="tab" onclick="showPanel('trade',this)">Trade</button>
+    <button class="tab" onclick="showPanel('positions',this)">Positions</button>
+    <button class="tab" onclick="showPanel('about',this)">About</button>
+  </div>
+
+  <!-- MARKET PANEL -->
+  <div id="panel-market" class="panel active">
+    <div class="metrics">
+      <div class="metric">
+        <div class="lbl">DAQI Spot</div>
+        <div class="val danger" id="spot-val">312</div>
+        <div class="chg up" id="spot-chg">+8 today</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Dec '25 Future</div>
+        <div class="val" id="fut-val">348</div>
+        <div class="chg up">+2.3% vs spot</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Mar '26 Future</div>
+        <div class="val" id="fut2-val">287</div>
+        <div class="chg dn">−8% vs spot</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Implied Vol</div>
+        <div class="val" id="iv-val">31%</div>
+        <div class="chg">DAQI vol index</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h3>DAQI Level — Live Gauge</h3>
+        <div class="aqi-bar-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+            <span style="font-size:28px;font-weight:700;font-family:var(--fm);color:var(--accent)" id="gauge-num">312</span>
+            <span style="font-size:13px;color:var(--ink2)" id="gauge-cat">Very Unhealthy</span>
+          </div>
+          <div class="aqi-bar">
+            <div class="aqi-needle" id="needle" style="left:62%"></div>
+          </div>
+          <div class="aqi-labels">
+            <span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <label style="font-size:11px;color:var(--ink3);font-family:var(--fm)">SIMULATE AQI LEVEL</label>
+          <input type="range" id="aqi-slider" min="0" max="500" value="312" style="width:100%;margin-top:6px" oninput="updateAQI(this.value)">
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Forward Curve</h3>
+        <div class="curve-chart"><canvas id="curveChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>Option Chain — Dec '25 (Strike ladder)</h3>
+      <table class="pos-table" id="chain-table">
+        <thead><tr><th>Strike</th><th>Call IV</th><th>Call Bid</th><th>Call Ask</th><th>Delta</th><th>Put Bid</th><th>Put Ask</th><th>Put IV</th></tr></thead>
+        <tbody id="chain-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TRADE PANEL -->
+  <div id="panel-trade" class="panel">
+    <div class="order-grid">
+      <div class="card">
+        <h3>New Order</h3>
+        <div class="form-group">
+          <label>Instrument</label>
+          <select id="inst" onchange="updatePayoff()">
+            <option>DAQI Dec '25 Future</option>
+            <option>DAQI Mar '26 Future</option>
+            <option>DAQI Dec '25 Call — Strike 300</option>
+            <option>DAQI Dec '25 Call — Strike 350</option>
+            <option>DAQI Dec '25 Call — Strike 400</option>
+            <option>DAQI Dec '25 Put — Strike 300</option>
+            <option>DAQI Dec '25 Put — Strike 350</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Direction</label>
+          <div class="seg">
+            <button class="on" id="btn-long" onclick="setDir('long')">Long / Buy</button>
+            <button id="btn-short" onclick="setDir('short')">Short / Sell</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Contracts (1 contract = ₹500 × DAQI)</label>
+          <input type="number" id="qty" value="1" min="1" max="50" oninput="updatePayoff()">
+        </div>
+        <div class="form-group">
+          <label>Entry Price (auto-filled)</label>
+          <input type="number" id="entry-px" value="348" readonly style="opacity:.7">
+        </div>
+        <div style="margin-top:4px;font-size:12px;color:var(--ink3);font-family:var(--fm)" id="notional-display">Notional: ₹1,74,000</div>
+        <button class="submit-btn" style="margin-top:16px" onclick="placeOrder()">Place Paper Trade</button>
+      </div>
+
+      <div class="card">
+        <h3>Payoff at Expiry</h3>
+        <div class="payoff-chart"><canvas id="payoffChart"></canvas></div>
+        <div class="tick-note" id="payoff-note">Long future: profit if DAQI rises above entry. Each point = ₹500.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Scenario Analysis — P&amp;L at different AQI levels</h3>
+      <table class="pos-table" id="scenario-table">
+        <thead><tr><th>AQI at Expiry</th><th>Category</th><th>P&amp;L (₹)</th><th>Return %</th></tr></thead>
+        <tbody id="scenario-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- POSITIONS PANEL -->
+  <div id="panel-positions" class="panel">
+    <div class="pos-summary">
+      <div class="metric">
+        <div class="lbl">Total P&amp;L</div>
+        <div class="val" id="total-pnl">₹0</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Open Positions</div>
+        <div class="val" id="open-count">0</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Margin Used</div>
+        <div class="val" id="margin-used">₹0</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Open Positions</h3>
+      <div id="pos-content">
+        <div class="empty-state">No positions yet — head to the Trade tab to open one.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Trade Log</h3>
+      <div id="log-content">
+        <div class="empty-state">Trade history will appear here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABOUT PANEL -->
+  <div id="panel-about" class="panel">
+    <div class="about-section">
+      <h3>Delhi AQI Composite Index (DAQI)</h3>
+      <p>DAQI is a formally documented index constructed from CPCB-monitored stations across Delhi. It aggregates PM2.5, PM10, NO₂, and O₃ readings into a single tradeable reference value, using a weighted average methodology based on station coverage and population density.</p>
+    </div>
+
+    <div class="about-section">
+      <h3>Index Construction</h3>
+      <table class="spec-table">
+        <tr><td>Reference stations</td><td>Anand Vihar, RK Puram, Punjabi Bagh, Dwarka, ITO, Rohini, Lodhi Road</td></tr>
+        <tr><td>Pollutants</td><td>PM2.5 (40%), PM10 (30%), NO₂ (20%), O₃ (10%)</td></tr>
+        <tr><td>Calculation</td><td>Weighted arithmetic mean, daily 24-hr average</td></tr>
+        <tr><td>Data source</td><td>CPCB / OpenAQ API (real-time)</td></tr>
+        <tr><td>Settlement basis</td><td>Calendar-month average of daily DAQI readings</td></tr>
+      </table>
+    </div>
+
+    <div class="about-section">
+      <h3>Contract Specifications</h3>
+      <table class="spec-table">
+        <tr><td>Underlying</td><td>Delhi AQI Composite Index (DAQI)</td></tr>
+        <tr><td>Contract multiplier</td><td>₹500 per DAQI point</td></tr>
+        <tr><td>Tick size</td><td>0.5 index points = ₹250</td></tr>
+        <tr><td>Contract months</td><td>Monthly (up to 12 months)</td></tr>
+        <tr><td>Settlement</td><td>Cash, European-style, monthly average DAQI</td></tr>
+        <tr><td>Initial margin</td><td>~15% of notional</td></tr>
+        <tr><td>Natural buyers</td><td>Airlines, hospitality, outdoor events, construction</td></tr>
+        <tr><td>Natural sellers</td><td>Insurance cos, pollution mitigation funds, speculators</td></tr>
+      </table>
+      <div class="tick-note">All prices, margins and Greeks shown here are simulated for educational purposes only.</div>
+    </div>
+
+    <div class="about-section">
+      <h3>GRAP Trigger Levels</h3>
+      <p>Delhi's Graded Response Action Plan creates discrete economic impacts at AQI thresholds — the natural anchor for option strike design.</p>
+      <div class="grap-grid">
+        <div class="grap-card g1"><div class="stage">Stage 0</div><div class="range">AQI 0–200</div><div class="desc">Normal operations</div></div>
+        <div class="grap-card g2"><div class="stage">Stage I</div><div class="range">201–300</div><div class="desc">Light restrictions</div></div>
+        <div class="grap-card g3"><div class="stage">Stage II–III</div><div class="range">301–400</div><div class="desc">Construction halts, school closures</div></div>
+        <div class="grap-card g4"><div class="stage">Stage IV</div><div class="range">400+</div><div class="desc">Heavy industry shutdown, odd-even driving</div></div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <h3>Hedging rationale</h3>
+      <ul>
+        <li>Airlines: reduced demand / diversions when AQI triggers flight restrictions</li>
+        <li>Outdoor events / IPL: cancellation risk above Stage II</li>
+        <li>Construction firms: mandated halts → revenue loss proportional to AQI severity</li>
+        <li>Hospitality: hotel occupancy drops ~18% in high-AQI months (Oct–Jan)</li>
+        <li>Health insurers: claims spike correlated with AQI &gt; 300</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+let dir = 'long';
+let positions = [];
+let tradeLog = [];
+
+function showPanel(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  el.classList.add('active');
+}
+
+function setDir(d) {
+  dir = d;
+  document.getElementById('btn-long').classList.toggle('on', d === 'long');
+  document.getElementById('btn-short').classList.toggle('on', d === 'short');
+  updatePayoff();
+}
+
+const AQI_CATS = [
+  [0,50,'Good','#4caf50'],
+  [51,100,'Satisfactory','#8bc34a'],
+  [101,200,'Moderate','#ffeb3b'],
+  [201,300,'Poor','#ff9800'],
+  [301,400,'Very Unhealthy','#f44336'],
+  [401,500,'Severe','#9c27b0']
+];
+
+function aqiCat(v) {
+  for (let [lo,hi,cat,col] of AQI_CATS) if (v <= hi) return {cat, col};
+  return {cat:'Severe',col:'#7b1010'};
+}
+
+function updateAQI(v) {
+  v = parseInt(v);
+  document.getElementById('gauge-num').textContent = v;
+  const {cat} = aqiCat(v);
+  document.getElementById('gauge-cat').textContent = cat;
+  document.getElementById('needle').style.left = (v/500*100).toFixed(1) + '%';
+  document.getElementById('spot-val').textContent = v;
+  document.getElementById('spot-chg').textContent = (v > 300 ? '+' : '') + (v - 312) + ' vs base';
+}
+
+const STRIKES = [250,300,350,400,450];
+
+function buildChain() {
+  const spot = 348;
+  const iv = 0.31; const T = 0.25;
+  const rows = STRIKES.map(K => {
+    const d1 = (Math.log(spot/K) + 0.5*iv*iv*T)/(iv*Math.sqrt(T));
+    const delta = normCDF(d1).toFixed(2);
+    const callBid = Math.max(0, spot - K + 5 + Math.random()*3).toFixed(1);
+    const callAsk = (parseFloat(callBid) + 4 + Math.random()*2).toFixed(1);
+    const putBid = Math.max(0, K - spot + 5 + Math.random()*3).toFixed(1);
+    const putAsk = (parseFloat(putBid) + 4 + Math.random()*2).toFixed(1);
+    const civ = (iv*100 + (Math.abs(K-spot)/spot)*15).toFixed(0);
+    return `<tr>
+      <td style="font-family:var(--fm);font-weight:500">${K}</td>
+      <td style="font-family:var(--fm)">${civ}%</td>
+      <td style="font-family:var(--fm);color:var(--green)">${callBid}</td>
+      <td style="font-family:var(--fm)">${callAsk}</td>
+      <td style="font-family:var(--fm);color:var(--ink2)">${delta}</td>
+      <td style="font-family:var(--fm);color:var(--green)">${putBid}</td>
+      <td style="font-family:var(--fm)">${putAsk}</td>
+      <td style="font-family:var(--fm)">${(parseInt(civ)+3)}%</td>
+    </tr>`;
+  });
+  document.getElementById('chain-body').innerHTML = rows.join('');
+}
+
+function normCDF(x) {
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const sign = x<0?-1:1; x=Math.abs(x)/Math.sqrt(2);
+  const t=1/(1+p*x);
+  const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return 0.5*(1+sign*y);
+}
+
+let curveChart, payoffChart;
+
+function initCurveChart() {
+  const ctx = document.getElementById('curveChart');
+  if (!ctx) return;
+  const isDark = matchMedia('(prefers-color-scheme:dark)').matches;
+  const textColor = isDark ? '#a8a69e' : '#5a5a56';
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  curveChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Oct','Nov','Dec','Jan','Feb','Mar','Apr'],
+      datasets: [{
+        label: 'DAQI Forward',
+        data: [312, 338, 348, 355, 320, 287, 262],
+        borderColor: '#c84b1e',
+        backgroundColor: 'rgba(200,75,30,0.08)',
+        fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#c84b1e'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: textColor, font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: gridColor } },
+        y: { ticks: { color: textColor, font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: gridColor }, min: 220, max: 400 }
+      }
+    }
+  });
+}
+
+function getInstrumentData(inst) {
+  const data = {
+    'DAQI Dec \'25 Future': { px: 348, mult: 500, type: 'future', strike: null },
+    'DAQI Mar \'26 Future': { px: 287, mult: 500, type: 'future', strike: null },
+    'DAQI Dec \'25 Call — Strike 300': { px: 54, mult: 500, type: 'call', strike: 300 },
+    'DAQI Dec \'25 Call — Strike 350': { px: 18, mult: 500, type: 'call', strike: 350 },
+    'DAQI Dec \'25 Call — Strike 400': { px: 7, mult: 500, type: 'call', strike: 400 },
+    'DAQI Dec \'25 Put — Strike 300': { px: 12, mult: 500, type: 'put', strike: 300 },
+    'DAQI Dec \'25 Put — Strike 350': { px: 24, mult: 500, type: 'put', strike: 350 }
+  };
+  return data[inst] || data['DAQI Dec \'25 Future'];
+}
+
+function updatePayoff() {
+  const inst = document.getElementById('inst').value;
+  const qty = parseInt(document.getElementById('qty').value) || 1;
+  const d = getInstrumentData(inst);
+  document.getElementById('entry-px').value = d.px;
+
+  const notional = d.px * d.mult * qty;
+  document.getElementById('notional-display').textContent =
+    'Notional: ₹' + notional.toLocaleString('en-IN');
+
+  const aqiRange = [];
+  for (let a = 100; a <= 500; a += 20) aqiRange.push(a);
+
+  function pnl(aqi) {
+    let gross = 0;
+    if (d.type === 'future') gross = (aqi - d.px) * d.mult * qty;
+    else if (d.type === 'call') gross = (Math.max(0, aqi - d.strike) - d.px) * d.mult * qty;
+    else if (d.type === 'put') gross = (Math.max(0, d.strike - aqi) - d.px) * d.mult * qty;
+    return dir === 'long' ? gross : -gross;
+  }
+
+  const pnls = aqiRange.map(pnl);
+  const isDark = matchMedia('(prefers-color-scheme:dark)').matches;
+  const textColor = isDark ? '#a8a69e' : '#5a5a56';
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+  if (payoffChart) payoffChart.destroy();
+  const ctx = document.getElementById('payoffChart');
+  if (!ctx) return;
+  payoffChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: aqiRange,
+      datasets: [{
+        data: pnls,
+        borderColor: pnls.map(v => v >= 0 ? '#2d7a3a' : '#b83232'),
+        segment: { borderColor: ctx2 => ctx2.p0.parsed.y >= 0 ? '#2d7a3a' : '#b83232' },
+        fill: false, tension: 0, pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false },
+        annotation: { annotations: { zero: { type: 'line', yMin: 0, yMax: 0, borderColor: textColor, borderWidth: 1, borderDash: [4,4] } } }
+      },
+      scales: {
+        x: { title: { display: true, text: 'DAQI at Expiry', color: textColor, font: { size: 10, family: 'IBM Plex Mono' } }, ticks: { color: textColor, font: { family: 'IBM Plex Mono', size: 10 }, maxTicksLimit: 8 }, grid: { color: gridColor } },
+        y: { title: { display: true, text: 'P&L (₹)', color: textColor, font: { size: 10, family: 'IBM Plex Mono' } }, ticks: { color: textColor, font: { family: 'IBM Plex Mono', size: 10 }, callback: v => (v >= 0 ? '+' : '') + (v/1000).toFixed(0) + 'k' }, grid: { color: gridColor } }
+      }
+    }
+  });
+
+  const scenarios = [100,150,200,250,300,350,400,450,500].map(aqi => {
+    const p = pnl(aqi);
+    const cost = Math.abs(d.px * d.mult * qty);
+    const ret = cost > 0 ? (p / cost * 100).toFixed(1) : '—';
+    const {cat} = aqiCat(aqi);
+    return `<tr>
+      <td style="font-family:var(--fm);font-weight:500">${aqi}</td>
+      <td><span class="badge" style="background:${aqiCat(aqi).col}22;color:${aqiCat(aqi).col}">${cat}</span></td>
+      <td class="pnl ${p>=0?'pos':'neg'}" style="font-family:var(--fm)">${p>=0?'+':''}₹${Math.abs(p).toLocaleString('en-IN')}</td>
+      <td class="pnl ${p>=0?'pos':'neg'}" style="font-family:var(--fm)">${p>=0?'+':''}${ret}%</td>
+    </tr>`;
+  });
+  document.getElementById('scenario-body').innerHTML = scenarios.join('');
+
+  const notes = {
+    'future': `${dir === 'long' ? 'Long' : 'Short'} future: profit if DAQI ${dir === 'long' ? 'rises above' : 'falls below'} ${d.px}. Each point = ₹500.`,
+    'call': `${dir === 'long' ? 'Long call' : 'Short call'}: strike ${d.strike}, premium ₹${d.px}/pt. ${dir==='long'?'Profit if DAQI > '+(d.strike+d.px):'Profit up to premium of ₹'+(d.px*500*qty).toLocaleString('en-IN')+' if DAQI ≤ '+d.strike}.`,
+    'put': `${dir === 'long' ? 'Long put' : 'Short put'}: strike ${d.strike}, premium ₹${d.px}/pt. ${dir==='long'?'Profit if DAQI < '+(d.strike-d.px):'Capped profit if DAQI ≥ '+d.strike}.`
+  };
+  document.getElementById('payoff-note').textContent = notes[d.type];
+}
+
+function placeOrder() {
+  const inst = document.getElementById('inst').value;
+  const qty = parseInt(document.getElementById('qty').value) || 1;
+  const d = getInstrumentData(inst);
+  const pos = { inst, dir, qty, entryPx: d.px, type: d.type, strike: d.strike, mult: d.mult, id: Date.now() };
+  positions.push(pos);
+  const log = { time: new Date().toLocaleTimeString(), inst, dir, qty, px: d.px };
+  tradeLog.unshift(log);
+  renderPositions();
+  showPanel('positions', document.querySelectorAll('.tab')[2]);
+}
+
+function closePosition(id) {
+  positions = positions.filter(p => p.id !== id);
+  renderPositions();
+}
+
+function renderPositions() {
+  const spot = parseInt(document.getElementById('aqi-slider').value) || 312;
+  let totalPnl = 0;
+  let totalMargin = 0;
+
+  if (positions.length === 0) {
+    document.getElementById('pos-content').innerHTML = '<div class="empty-state">No open positions.</div>';
+  } else {
+    const rows = positions.map(p => {
+      let unrealised = 0;
+      if (p.type === 'future') unrealised = (spot - p.entryPx) * p.mult * p.qty;
+      else if (p.type === 'call') unrealised = (Math.max(0, spot - p.strike) - p.entryPx) * p.mult * p.qty;
+      else if (p.type === 'put') unrealised = (Math.max(0, p.strike - spot) - p.entryPx) * p.mult * p.qty;
+      if (p.dir === 'short') unrealised = -unrealised;
+      totalPnl += unrealised;
+      const margin = p.entryPx * p.mult * p.qty * 0.15;
+      totalMargin += margin;
+      return `<tr>
+        <td style="font-size:12px">${p.inst}</td>
+        <td><span class="badge ${p.dir}">${p.dir}</span></td>
+        <td style="font-family:var(--fm)">${p.qty}</td>
+        <td style="font-family:var(--fm)">${p.entryPx}</td>
+        <td style="font-family:var(--fm)">${spot}</td>
+        <td class="pnl ${unrealised>=0?'pos':'neg'}" style="font-family:var(--fm)">${unrealised>=0?'+':''}₹${Math.abs(Math.round(unrealised)).toLocaleString('en-IN')}</td>
+        <td><button onclick="closePosition(${p.id})" style="background:none;border:0.5px solid var(--border);color:var(--ink2);border-radius:5px;padding:3px 8px;cursor:pointer;font-size:11px">Close</button></td>
+      </tr>`;
+    });
+    document.getElementById('pos-content').innerHTML = `<table class="pos-table"><thead><tr><th>Instrument</th><th>Dir</th><th>Qty</th><th>Entry</th><th>DAQI Now</th><th>Unreal P&L</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+  }
+
+  document.getElementById('total-pnl').textContent = (totalPnl >= 0 ? '+' : '') + '₹' + Math.abs(Math.round(totalPnl)).toLocaleString('en-IN');
+  document.getElementById('total-pnl').className = 'val ' + (totalPnl >= 0 ? 'ok' : '');
+  document.getElementById('open-count').textContent = positions.length;
+  document.getElementById('margin-used').textContent = '₹' + Math.round(totalMargin).toLocaleString('en-IN');
+
+  if (tradeLog.length === 0) {
+    document.getElementById('log-content').innerHTML = '<div class="empty-state">No trades yet.</div>';
+  } else {
+    const logRows = tradeLog.map(l => `<tr>
+      <td style="font-family:var(--fm);color:var(--ink3)">${l.time}</td>
+      <td style="font-size:12px">${l.inst}</td>
+      <td><span class="badge ${l.dir}">${l.dir}</span></td>
+      <td style="font-family:var(--fm)">${l.qty} × ₹${l.px}</td>
+    </tr>`).join('');
+    document.getElementById('log-content').innerHTML = `<table class="pos-table"><thead><tr><th>Time</th><th>Instrument</th><th>Dir</th><th>Details</th></tr></thead><tbody>${logRows}</tbody></table>`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {});
+setTimeout(() => {
+  initCurveChart();
+  buildChain();
+  updatePayoff();
+  renderPositions();
+}, 100);
+</script>
