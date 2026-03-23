@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AQI-X Delhi Exchange — Simulation Results</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fafaf8;--bg2:#f4f3ef;--bg3:#eceae3;
+  --ink:#1a1a16;--ink2:#4a4a44;--ink3:#8a8a82;
+  --gold:#b5872a;--gold-l:#f5e9d0;
+  --red:#c03020;--red-l:#fde8e4;
+  --green:#1e6e3a;--green-l:#e2f5ea;
+  --blue:#1a4a8a;--blue-l:#e4eef8;
+  --border:#dddbd2;--border2:#c8c6be;
+  --shadow:0 1px 3px rgba(0,0,0,.08);
+  --ff:'DM Sans',sans-serif;--fd:'DM Serif Display',serif;--fm:'DM Mono',monospace;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--ink);font-family:var(--ff);line-height:1.6}
+
+/* HEADER */
+.header{background:#fff;border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.logo-name{font-family:var(--fd);font-size:22px;color:var(--ink)}
+.logo-tag{font-size:11px;color:var(--gold);font-family:var(--fm);background:var(--gold-l);padding:2px 8px;border-radius:3px;margin-left:10px}
+.nav a{padding:8px 14px;font-size:13px;color:var(--ink2);text-decoration:none;border-radius:6px}
+.nav a:hover{background:var(--bg2)}
+.nav a.active{background:var(--bg3);color:var(--ink);font-weight:500}
+
+/* PAGE */
+.page{max-width:1100px;margin:0 auto;padding:32px 24px}
+.page-title{font-family:var(--fd);font-size:32px;margin-bottom:6px}
+.page-sub{font-size:14px;color:var(--ink3);margin-bottom:32px}
+
+/* CARDS */
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow)}
+.card-title{font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;font-family:var(--fm);margin-bottom:16px}
+.card h2{font-family:var(--fd);font-size:22px;margin-bottom:8px}
+
+/* SIM CONTROLS */
+.sim-controls{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.sc-item label{display:block;font-size:11px;color:var(--ink3);font-weight:500;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+input[type=range]{width:100%;accent-color:var(--gold)}
+input[type=number],select{width:100%;background:#fff;border:1px solid var(--border2);color:var(--ink);font-family:var(--fm);font-size:12px;padding:8px 10px;border-radius:6px}
+.sc-val{font-size:13px;font-weight:600;color:var(--ink);font-family:var(--fm);margin-top:3px}
+
+/* BIG RUN BUTTON */
+.run-btn{width:100%;padding:16px;background:var(--blue);color:#fff;font-family:var(--fd);font-size:18px;border:none;border-radius:10px;cursor:pointer;letter-spacing:.3px;transition:.15s;margin-bottom:24px}
+.run-btn:hover{background:#24409a;transform:translateY(-1px);box-shadow:0 4px 20px rgba(26,74,138,.3)}
+.run-btn:disabled{background:var(--ink3);cursor:not-allowed;transform:none}
+
+/* METRICS GRID */
+.metrics-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}
+.metric-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;box-shadow:var(--shadow)}
+.metric-card .ml{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.7px;font-family:var(--fm)}
+.metric-card .mv{font-size:22px;font-weight:700;margin-top:4px;font-family:var(--fm);color:var(--ink)}
+.metric-card .mv.up{color:var(--green)}.metric-card .mv.dn{color:var(--red)}.metric-card .mv.gold{color:var(--gold)}
+.metric-card .ms{font-size:11px;color:var(--ink3);margin-top:2px}
+
+/* SCENARIO GRID */
+.scenario-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.scenario-card{border-radius:10px;padding:16px;border:1px solid var(--border)}
+.scenario-card.bull{background:#f0faf3;border-color:#a8d8b5}
+.scenario-card.base{background:#f8f6f0;border-color:var(--border)}
+.scenario-card.bear{background:#fef2f0;border-color:#e8b0a8}
+.scenario-card .sc-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.bull .sc-label{color:var(--green)}.base .sc-label{color:var(--gold)}.bear .sc-label{color:var(--red)}
+.scenario-card .sc-aqi{font-family:var(--fd);font-size:28px;font-weight:700}
+.scenario-card .sc-pnl{font-family:var(--fm);font-size:15px;font-weight:600;margin-top:4px}
+
+/* TABLES */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:9px 12px;font-size:10px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid var(--border);font-family:var(--fm)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--ink2)}
+.tbl td.num{text-align:right;font-family:var(--fm);color:var(--ink)}
+.tbl td.up{text-align:right;color:var(--green);font-family:var(--fm);font-weight:600}
+.tbl td.dn{text-align:right;color:var(--red);font-family:var(--fm);font-weight:600}
+.tbl tr:hover td{background:var(--bg)}
+.tbl tr:last-child td{border-bottom:none}
+
+/* CATEGORY SUMMARY */
+.cat-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.cat-card-r{background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:var(--shadow)}
+.cat-card-r .cc-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cat-card-r .cc-icon{font-size:20px}
+.cat-card-r .cc-name{font-size:12px;font-weight:600;color:var(--ink)}
+.cat-card-r .cc-count{font-size:10px;color:var(--ink3);font-family:var(--fm)}
+.cat-card-r .cc-pnl{font-size:18px;font-weight:700;font-family:var(--fm)}
+.cat-card-r .cc-pnl.pos{color:var(--green)}.cat-card-r .cc-pnl.neg{color:var(--red)}
+.cat-card-r .cc-detail{font-size:11px;color:var(--ink3);margin-top:4px}
+.progress-bar{height:6px;background:var(--bg3);border-radius:3px;margin-top:8px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .8s ease}
+
+/* PATH CHART */
+.two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;margin-bottom:20px}
+
+/* PAYOFF TABLE */
+.payoff-highlight{background:linear-gradient(135deg,var(--blue-l) 0%,#f0f4fc 100%);border:1px solid #b0c8e8;border-radius:10px;padding:20px;margin-bottom:20px}
+.payoff-highlight .ph-label{font-size:11px;color:var(--blue);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.payoff-highlight .ph-name{font-family:var(--fd);font-size:20px;margin-bottom:2px}
+.payoff-highlight .ph-cat{font-size:12px;color:var(--ink3);margin-bottom:16px}
+.payoff-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.payoff-stat .ps-label{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;font-family:var(--fm)}
+.payoff-stat .ps-val{font-size:20px;font-weight:700;font-family:var(--fm)}
+.payoff-stat .ps-val.up{color:var(--green)}.payoff-stat .ps-val.dn{color:var(--red)}
+
+/* NO DATA */
+.no-data{text-align:center;padding:60px 0;color:var(--ink3)}
+.no-data .nd-icon{font-size:48px;margin-bottom:12px}
+.no-data h3{font-size:16px;color:var(--ink2);font-weight:500;margin-bottom:8px}
+.no-data p{font-size:13px;max-width:400px;margin:0 auto}
+.no-data a{color:var(--blue);text-decoration:none;font-weight:500}
+
+/* MONTHLY PATH TABLE */
+.monthly-mini{font-size:11px;font-family:var(--fm);color:var(--ink3);margin-top:4px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;border-radius:8px;padding:12px 18px;font-size:12px;z-index:999;opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* LOADER */
+.loader{display:none;text-align:center;padding:40px;color:var(--ink3);font-size:13px}
+.loader.show{display:block}
+.spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:800px){
+  .metrics-grid{grid-template-columns:repeat(3,1fr)}
+  .scenario-grid{grid-template-columns:1fr}
+  .two-col{grid-template-columns:1fr}
+  .cat-summary{grid-template-columns:repeat(2,1fr)}
+  .payoff-row{grid-template-columns:repeat(2,1fr)}
+  .sim-controls{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <span class="logo-name">AQI-X Delhi Exchange</span>
+    <span class="logo-tag">Simulation Results</span>
+  </div>
+  <div class="nav">
+    <a href="index.html">← Trading Floor</a>
+    <a href="results.html" class="active">Simulation Results</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-title">12-Month AQI Path Simulation</div>
+  <div class="page-sub">Brownian motion simulation of the Delhi AQI Composite Index with seasonal drift · Calibrated to 3-year historical volatility</div>
+
+  <!-- SIM CONTROLS -->
+  <div class="card">
+    <div class="card-title">Simulation Parameters</div>
+    <div class="sim-controls">
+      <div class="sc-item">
+        <label>Starting AQI-X Delhi</label>
+        <input type="number" id="p-spot" value="262" min="50" max="500">
+      </div>
+      <div class="sc-item">
+        <label>Annualised Volatility</label>
+        <input type="range" id="p-vol" min="10" max="80" value="34" oninput="document.getElementById('p-vol-v').textContent=this.value+'%'">
+        <div class="sc-val" id="p-vol-v">34%</div>
+      </div>
+      <div class="sc-item">
+        <label>Simulation Seed</label>
+        <input type="number" id="p-seed" value="42" min="1" max="9999">
+        <div style="font-size:10px;color:var(--ink3);margin-top:3px">Change for a different path</div>
+      </div>
+      <div class="sc-item">
+        <label>Your Position (for payoff)</label>
+        <select id="p-pos-select"></select>
+      </div>
+    </div>
+    <button class="run-btn" onclick="runSimulation()" id="run-btn">▶ Run 12-Month Simulation</button>
+  </div>
+
+  <!-- LOADER -->
+  <div class="loader" id="loader"><div class="spin"></div>Simulating 10,000 paths and calculating payoffs…</div>
+
+  <!-- RESULTS (hidden until run) -->
+  <div id="results-section" style="display:none">
+
+    <!-- PERSONAL PAYOFF HIGHLIGHT -->
+    <div class="payoff-highlight" id="personal-payoff"></div>
+
+    <!-- KEY METRICS -->
+    <div class="metrics-grid" id="key-metrics"></div>
+
+    <!-- PATH CHART + MONTHLY TABLE -->
+    <div class="two-col">
+      <div class="card" style="padding:20px">
+        <div class="card-title">Simulated AQI Path — 12 Months</div>
+        <div style="position:relative;height:280px"><canvas id="pathChart"></canvas></div>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-title">Monthly AQI Values &amp; Payoff</div>
+        <div id="monthly-table"></div>
+      </div>
+    </div>
+
+    <!-- SCENARIO ANALYSIS -->
+    <div class="card">
+      <div class="card-title">Scenario Analysis — Bull / Base / Bear</div>
+      <div class="scenario-grid" id="scenarios"></div>
+    </div>
+
+    <!-- COLLECTIVE CATEGORY SUMMARY -->
+    <div class="card">
+      <div class="card-title">Collective Results by Participant Category</div>
+      <div class="cat-summary" id="cat-summary"></div>
+      <div class="card-title" style="margin-top:20px;margin-bottom:12px">All Registered Bids — Summary Table</div>
+      <div style="overflow-x:auto"><table class="tbl" id="bids-table"></table></div>
+    </div>
+
+    <!-- DISTRIBUTION CHART -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Final AQI Distribution — 500 Monte Carlo Paths</div>
+        <div style="position:relative;height:220px"><canvas id="distChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Collective P&L by Category</div>
+        <div style="position:relative;height:220px"><canvas id="catPnlChart"></canvas></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- NO POSITIONS STATE -->
+  <div id="no-data-section">
+    <div class="card">
+      <div class="no-data">
+        <div class="nd-icon">📊</div>
+        <h3>No positions found for your account</h3>
+        <p>Head to the <a href="index.html">Trading Floor</a>, register as a participant, and place at least one paper trade. Then return here to run the simulation and see your payoff.</p>
+        <p style="margin-top:12px">The simulation will show your individual payoff alongside the collective results from all registered participants across all categories.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MULT=500;
+// Schwartz seasonal averages (calibrated to 3Y CPCB data)
+const SEA_AVG={0:316,1:253,2:177,3:144,4:158,5:90,6:76,7:82,8:112,9:226,10:354,11:382};
+const SEA_VOL={0:1.15,1:1.05,2:0.92,3:0.85,4:0.88,5:0.82,6:0.80,7:0.82,8:0.90,9:1.05,10:1.18,11:1.20};
+const SPOT=262; // Feb 2026 AQI-X Delhi
+const SPOT_MONTH=1; // February
+const KAPPA=1.2;
+const HV3Y=0.34;
+
+// ── BLACK-76 ─────────────────────────────────────────────────────
+function nCDF(x){
+  const a=[0.254829592,-0.284496736,1.421413741,-1.453152027,1.061405429],p=0.3275911;
+  const s=x<0?-1:1;x=Math.abs(x)/Math.sqrt(2);
+  const t=1/(1+p*x);
+  return 0.5*(1+s*(1-((((a[4]*t+a[3])*t+a[2])*t+a[1])*t+a[0])*t*Math.exp(-x*x)));
+}
+function b76Call(F,K,T,v){if(T<=0||v<=0)return Math.max(0,F-K);const d1=(Math.log(F/K)+.5*v*v*T)/(v*Math.sqrt(T)),d2=d1-v*Math.sqrt(T);return F*nCDF(d1)-K*nCDF(d2)}
+function b76Put(F,K,T,v){if(T<=0||v<=0)return Math.max(0,K-F);const d1=(Math.log(F/K)+.5*v*v*T)/(v*Math.sqrt(T)),d2=d1-v*Math.sqrt(T);return K*nCDF(-d2)-F*nCDF(-d1)}
+
+// ── SEEDED RNG (Box-Muller) ───────────────────────────────────────
+function makeRng(seed){
+  let s=seed;
+  return function(){s=(s*1664525+1013904223)&0xffffffff;const u=(s>>>0)/0xffffffff;s=(s*1664525+1013904223)&0xffffffff;const v=(s>>>0)/0xffffffff;return Math.sqrt(-2*Math.log(Math.max(1e-10,u)))*Math.cos(2*Math.PI*v)};
+}
+
+// ── SCHWARTZ FUTURES PRICE ────────────────────────────────────────
+function schwartzF(spotVal,spotMonth,targetMonth,T){
+  return Math.round(SEA_AVG[targetMonth]*Math.pow(spotVal/SEA_AVG[spotMonth],Math.exp(-KAPPA*T)));
+}
+
+// ── BROWNIAN MOTION with SEASONAL VOL + MEAN REVERSION ───────────
+// Uses Schwartz (1997): d(ln S) = κ(ln μ_seasonal - ln S)dt + σ_seasonal dW
+// Monthly vol = HV3Y × SEA_VOL[month] — higher in Oct–Jan (stubble+inversion)
+function simulatePath(spot,baseVol,seed,months=12){
+  const rng=makeRng(seed);
+  const path=[spot];
+  const dt=1/12,kappa=0.6;
+  for(let i=0;i<months;i++){
+    const d=new Date('2026-02-01');d.setMonth(d.getMonth()+i+1);
+    const m=d.getMonth();
+    const seasonalMean=SEA_AVG[m];
+    const seasonalVol=baseVol*SEA_VOL[m]; // seasonal vol scaling
+    const prev=path[path.length-1];
+    const drift=kappa*(Math.log(seasonalMean)-Math.log(prev))*dt;
+    const shock=seasonalVol*Math.sqrt(dt)*rng();
+    const next=Math.max(20,Math.round(prev*Math.exp(drift+shock)));
+    path.push(next);
+  }
+  return path;
+}
+
+// ── MONTE CARLO (500 paths for distribution) ────────────────────
+function monteCarloFinalAQI(spot,vol,seeds=500){
+  const finals=[];
+  for(let i=0;i<seeds;i++){const p=simulatePath(spot,vol,i*37+11);finals.push(p[p.length-1])}
+  return finals;
+}
+
+// ── CALC PAYOFF ──────────────────────────────────────────────────
+function calcPositionPayoff(pos,monthlyAqi,vol){
+  const expiryMonth=pos.futIdx+1;
+  const settlementAqi=monthlyAqi[Math.min(expiryMonth,monthlyAqi.length-1)];
+  const T=Math.max(0,(pos.futIdx+1-monthlyAqi.length+1)/12);
+  let intrinsic=0,premium=pos.entryPx;
+  if(pos.type==='Future'){
+    intrinsic=settlementAqi;premium=pos.entryPx;
+  } else if(pos.type==='Call'){
+    intrinsic=Math.max(0,settlementAqi-(pos.K||0));
+  } else if(pos.type==='Put'){
+    intrinsic=Math.max(0,(pos.K||0)-settlementAqi);
+  }
+  let pnl=0;
+  if(pos.type==='Future'){pnl=(intrinsic-premium)*MULT*pos.qty;if(pos.dir==='short')pnl=-pnl}
+  else{pnl=(intrinsic-premium)*MULT*pos.qty;if(pos.dir==='short')pnl=-pnl}
+  return{settlementAqi,intrinsic,premium,pnl,ret:pnl/(premium*MULT*pos.qty)*100};
+}
+
+// ── CHARTS ───────────────────────────────────────────────────────
+let pathChart,distChart,catPnlChart;
+
+function renderPathChart(monthlyAqi,labels){
+  const cols=monthlyAqi.map(v=>v>300?'#c03020':v>200?'#c07020':v>100?'#a08020':'#1e6e3a');
+  if(pathChart)pathChart.destroy();
+  pathChart=new Chart(document.getElementById('pathChart'),{
+    type:'line',
+    data:{labels:['Now',...labels],datasets:[
+      {data:monthlyAqi,borderColor:'#1a4a8a',backgroundColor:'rgba(26,74,138,.07)',fill:true,tension:.3,pointRadius:5,pointBackgroundColor:cols,borderWidth:2},
+      {data:monthlyAqi.map(()=>300),borderColor:'rgba(192,48,32,.3)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false,label:'GRAP III Trigger'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0?'AQI: '+ctx.raw+' — '+(ctx.raw>300?'Very Unhealthy':ctx.raw>200?'Poor':ctx.raw>100?'Moderate':'Good'):'GRAP III trigger'}}},scales:{x:{ticks:{color:'#8a8a82',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#8a8a82',font:{size:10}},grid:{color:'#f0ede4'},min:0,max:500}}}
+  });
+}
+
+function renderDistChart(finals,myFinal){
+  const bins=Array(10).fill(0);
+  finals.forEach(v=>{const b=Math.min(9,Math.floor(v/50));bins[b]++});
+  const labels=['0-50','50-100','100-150','150-200','200-250','250-300','300-350','350-400','400-450','450+'];
+  const myBin=Math.min(9,Math.floor(myFinal/50));
+  if(distChart)distChart.destroy();
+  distChart=new Chart(document.getElementById('distChart'),{
+    type:'bar',
+    data:{labels,datasets:[{data:bins,backgroundColor:labels.map((_,i)=>i===myBin?'#1a4a8a':i>=6?'rgba(192,48,32,.35)':i>=4?'rgba(192,112,32,.35)':'rgba(30,110,58,.35)'),borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw} paths (${(ctx.raw/finals.length*100).toFixed(1)}%)${ctx.dataIndex===myBin?' ← Your scenario':''}`}}},scales:{x:{ticks:{color:'#8a8a82',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#8a8a82',font:{size:10}},grid:{color:'#f0ede4'}}}}
+  });
+}
+
+function renderCatPnlChart(catResults){
+  const cats=Object.entries(catResults).filter(([,v])=>v.count>0);
+  if(!cats.length)return;
+  const labels=cats.map(([,v])=>v.icon+' '+v.name.split(' ')[0]);
+  const data=cats.map(([,v])=>Math.round(v.totalPnl/100000));
+  const colors=data.map(v=>v>=0?'rgba(30,110,58,.7)':'rgba(192,48,32,.7)');
+  if(catPnlChart)catPnlChart.destroy();
+  catPnlChart=new Chart(document.getElementById('catPnlChart'),{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>(ctx.raw>=0?'+':'')+'₹'+Math.abs(ctx.raw)+'L collective P&L'}}},scales:{x:{ticks:{color:'#8a8a82',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#8a8a82',font:{size:10},callback:v=>v+'L'},grid:{color:'#f0ede4'}}}}
+  });
+}
+
+// ── MAIN RUN ────────────────────────────────────────────────────
+function runSimulation(){
+  const spot=parseInt(document.getElementById('p-spot').value)||262;
+  const vol=parseInt(document.getElementById('p-vol').value)/100||.34;
+  const seed=parseInt(document.getElementById('p-seed').value)||42;
+  const posIdx=document.getElementById('p-pos-select').value;
+
+  document.getElementById('loader').classList.add('show');
+  document.getElementById('results-section').style.display='none';
+  document.getElementById('no-data-section').style.display='none';
+  document.getElementById('run-btn').disabled=true;
+
+  setTimeout(()=>{
+    // Generate path
+    const now=new Date('2026-02-01');
+    const monthlyAqi=simulatePath(spot,vol,seed);
+    const labels=[];
+    for(let i=1;i<=12;i++){const d=new Date(now);d.setMonth(d.getMonth()+i);labels.push(MONTHS[d.getMonth()]+'\''+String(d.getFullYear()).slice(2))}
+    const finalAqi=monthlyAqi[monthlyAqi.length-1];
+    const avgAqi=Math.round(monthlyAqi.slice(1).reduce((a,b)=>a+b,0)/12);
+    const maxAqi=Math.max(...monthlyAqi);const minAqi=Math.min(...monthlyAqi);
+    const severeDays=monthlyAqi.filter(v=>v>300).length;
+
+    // Monte Carlo
+    const mcFinals=monteCarloFinalAQI(spot,vol,500);
+    mcFinals.sort((a,b)=>a-b);
+    const p5=mcFinals[Math.floor(.05*mcFinals.length)];
+    const p50=mcFinals[Math.floor(.5*mcFinals.length)];
+    const p95=mcFinals[Math.floor(.95*mcFinals.length)];
+
+    // Load positions
+    const currentUser=JSON.parse(localStorage.getItem('daqi_current_user')||'null');
+    const userPositions=currentUser?JSON.parse(localStorage.getItem('daqi_positions_'+currentUser.name)||'[]'):[];
+    const allPositions=JSON.parse(localStorage.getItem('daqi_all_positions')||'[]');
+
+    // My payoff
+    let myPnl=0,myPosCount=userPositions.length;
+    const myPayoffs=userPositions.map(p=>{
+      const r=calcPositionPayoff(p,monthlyAqi,vol);
+      myPnl+=r.pnl;return{...p,...r};
+    });
+
+    // Personal highlight
+    if(currentUser&&myPosCount>0){
+      const cat=currentUser.category;
+      document.getElementById('personal-payoff').innerHTML=`
+        <div class="ph-label">Your Individual Simulation Result</div>
+        <div class="ph-name">${currentUser.name}</div>
+        <div class="ph-cat">${cat.icon} ${cat.name}</div>
+        <div class="payoff-row">
+          <div class="payoff-stat"><div class="ps-label">Total P&L</div><div class="ps-val ${myPnl>=0?'up':'dn'}">${myPnl>=0?'+':''}₹${Math.abs(Math.round(myPnl)).toLocaleString('en-IN')}</div></div>
+          <div class="payoff-stat"><div class="ps-label">Positions</div><div class="ps-val">${myPosCount}</div></div>
+          <div class="payoff-stat"><div class="ps-label">Settled AQI</div><div class="ps-val">${finalAqi}</div></div>
+          <div class="payoff-stat"><div class="ps-label">12M Avg AQI</div><div class="ps-val">${avgAqi}</div></div>
+        </div>`;
+    } else {
+      document.getElementById('personal-payoff').innerHTML=`
+        <div class="ph-label">Simulation Result — No Personal Positions</div>
+        <div class="ph-name">Register &amp; place trades on the <a href="index.html" style="color:var(--blue)">Trading Floor</a> to see your individual payoff here.</div>`;
+    }
+
+    // Key metrics
+    document.getElementById('key-metrics').innerHTML=`
+      <div class="metric-card"><div class="ml">Start AQI</div><div class="mv gold">${spot}</div></div>
+      <div class="metric-card"><div class="ml">12M Final</div><div class="mv ${finalAqi>300?'dn':finalAqi<150?'up':''}">${finalAqi}</div><div class="ms">${finalAqi>300?'Very Unhealthy':finalAqi>200?'Poor':finalAqi>100?'Moderate':'Good'}</div></div>
+      <div class="metric-card"><div class="ml">12M Average</div><div class="mv">${avgAqi}</div></div>
+      <div class="metric-card"><div class="ml">MC 5th–95th %ile</div><div class="mv" style="font-size:14px">${p5}–${p95}</div><div class="ms">Range of outcomes</div></div>
+      <div class="metric-card"><div class="ml">Severe Months</div><div class="mv dn">${severeDays}</div><div class="ms">AQI > 300</div></div>`;
+
+    // Scenarios
+    const bullAqi=p5,baseAqi=p50,bearAqi=p95;
+    function scenPnl(aqi){return userPositions.reduce((t,p)=>{
+      const r=calcPositionPayoff(p,[aqi],vol);return t+r.pnl;
+    },0)}
+    document.getElementById('scenarios').innerHTML=`
+      <div class="scenario-card bull">
+        <div class="sc-label">Bull (Clean Air) — 5th %ile</div>
+        <div class="sc-aqi" style="color:var(--green)">${bullAqi}</div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">AQI at year-end in best 5% of outcomes</div>
+        <div class="sc-pnl ${scenPnl(bullAqi)>=0?'':''}">Your P&L: <span style="color:${scenPnl(bullAqi)>=0?'var(--green)':'var(--red)'}">${scenPnl(bullAqi)>=0?'+':''}₹${Math.abs(Math.round(scenPnl(bullAqi))).toLocaleString('en-IN')}</span></div>
+      </div>
+      <div class="scenario-card base">
+        <div class="sc-label">Base — Median (50th %ile)</div>
+        <div class="sc-aqi" style="color:var(--gold)">${baseAqi}</div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">AQI at year-end in median scenario</div>
+        <div class="sc-pnl">Your P&L: <span style="color:${scenPnl(baseAqi)>=0?'var(--green)':'var(--red)'}">${scenPnl(baseAqi)>=0?'+':''}₹${Math.abs(Math.round(scenPnl(baseAqi))).toLocaleString('en-IN')}</span></div>
+      </div>
+      <div class="scenario-card bear">
+        <div class="sc-label">Bear (Toxic Air) — 95th %ile</div>
+        <div class="sc-aqi" style="color:var(--red)">${bearAqi}</div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">AQI at year-end in worst 5% of outcomes</div>
+        <div class="sc-pnl">Your P&L: <span style="color:${scenPnl(bearAqi)>=0?'var(--green)':'var(--red)'}">${scenPnl(bearAqi)>=0?'+':''}₹${Math.abs(Math.round(scenPnl(bearAqi))).toLocaleString('en-IN')}</span></div>
+      </div>`;
+
+    // Monthly table
+    document.getElementById('monthly-table').innerHTML=`
+      <table class="tbl" style="font-size:11px">
+        <thead><tr><th>Month</th><th>Sim AQI</th><th>Category</th><th>GRAP</th></tr></thead>
+        <tbody>${labels.map((l,i)=>{
+          const v=monthlyAqi[i+1];
+          const cat=v>400?'Severe':v>300?'V.Unhealthy':v>200?'Poor':v>100?'Moderate':'Good';
+          const grap=v>400?'Stage IV':v>300?'Stage III':v>200?'Stage II':v>100?'Stage I':'—';
+          return`<tr><td>${l}</td><td class="${v>300?'dn':v<150?'up':'num'}">${v}</td><td>${cat}</td><td>${grap}</td></tr>`;
+        }).join('')}</tbody>
+      </table>`;
+
+    // Category collective analysis — simulate random positions per category if none exist
+    const CATEGORIES_DEF={
+      construction:{name:'Construction Co.',icon:'🏗️'},school:{name:'School',icon:'🏫'},hospital:{name:'Hospital',icon:'🏥'},
+      insurance:{name:'Insurance',icon:'🛡️'},airpurifier:{name:'Air Purifier',icon:'💨'},chemicals:{name:'Chemicals',icon:'⚗️'},
+      agriculture:{name:'Agriculture',icon:'🌾'},automobile:{name:'Automobile',icon:'🚗'},airline:{name:'Airline',icon:'✈️'},
+      events:{name:'Events',icon:'🎭'},realty:{name:'Real Estate',icon:'🏢'},speculator:{name:'Speculator',icon:'📈'}
+    };
+    // Merge real positions with simulated ones for categories not yet present
+    const catResults={};
+    Object.entries(CATEGORIES_DEF).forEach(([id,def])=>{catResults[id]={...def,id,count:0,totalPnl:0,positions:[],avgPnl:0}});
+
+    // Real positions
+    allPositions.forEach(p=>{
+      const r=calcPositionPayoff(p,monthlyAqi,vol);
+      if(catResults[p.category]){catResults[p.category].count++;catResults[p.category].totalPnl+=r.pnl;catResults[p.category].positions.push({...p,...r})}
+    });
+
+    // Fill empty cats with simulated participants (for demo richness)
+    const futsForSim=[];
+    for(let i=1;i<=12;i++){
+      const d=new Date('2026-02-01');d.setMonth(d.getMonth()+i);
+      const m=d.getMonth();const T=i/12;
+      const price=Math.round(SEA_AVG[m]*Math.pow(SPOT/SEA_AVG[SPOT_MONTH],Math.exp(-KAPPA*T)));
+      futsForSim.push({price,T,month:m});
+    }
+    let ss=999;function rrr(){ss=(ss*1664525+1013904223)&0xffffffff;return(ss>>>0)/0xffffffff}
+
+    Object.entries(catResults).forEach(([id,cat])=>{
+      if(cat.count===0){
+        const simCount=Math.floor(2+rrr()*4);
+        for(let i=0;i<simCount;i++){
+          const futIdx=Math.floor(rrr()*6);const f=futsForSim[futIdx];
+          const typesForCat={'construction':['Call'],'school':['Call'],'hospital':['Call'],'insurance':['Call','Put'],'airpurifier':['Call'],'chemicals':['Call'],'agriculture':['Put','Call'],'automobile':['Call'],'airline':['Call'],'events':['Call'],'realty':['Call'],'speculator':['Call','Put','Future']};
+          const typeOpts=typesForCat[id]||['Call'];const type=typeOpts[Math.floor(rrr()*typeOpts.length)];
+          let K=null,entryPx,isCall;
+          const strikes=[150,200,250,300,350,400];const stk=strikes[Math.floor(rrr()*strikes.length)];
+          if(type==='Future'){K=null;entryPx=f.price;isCall=null}
+          else{K=stk;isCall=type==='Call';entryPx=isCall?b76Call(f.price,K,f.T,.34):b76Put(f.price,K,f.T,.34)}
+          const dir=id==='airpurifier'&&type==='Call'?'short':'long';
+          const qty=Math.floor(1+rrr()*5);
+          const simPos={inst:`AQI-X Delhi ${type} ${MONTHS[f.month]} K${K||''}`,type,dir,qty,entryPx,futIdx,K,isCall,mult:MULT};
+          const r=calcPositionPayoff(simPos,monthlyAqi,vol);
+          cat.count++;cat.totalPnl+=r.pnl;cat.positions.push({...simPos,...r,participant:'Simulated participant'});
+        }
+      }
+      cat.avgPnl=cat.count>0?cat.totalPnl/cat.count:0;
+    });
+
+    // Category summary cards
+    const sortedCats=Object.values(catResults).filter(c=>c.count>0).sort((a,b)=>b.totalPnl-a.totalPnl);
+    const maxAbsPnl=Math.max(...sortedCats.map(c=>Math.abs(c.totalPnl)));
+    document.getElementById('cat-summary').innerHTML=sortedCats.map(c=>`
+      <div class="cat-card-r">
+        <div class="cc-head">
+          <div class="cc-icon">${c.icon}</div>
+          <div>
+            <div class="cc-name">${c.name}</div>
+            <div class="cc-count">${c.count} participant${c.count!==1?'s':''} · ${c.positions.length} position${c.positions.length!==1?'s':''}</div>
+          </div>
+        </div>
+        <div class="cc-pnl ${c.totalPnl>=0?'pos':'neg'}">${c.totalPnl>=0?'+':''}₹${Math.abs(Math.round(c.totalPnl)).toLocaleString('en-IN')}</div>
+        <div class="cc-detail">Avg per participant: ${c.avgPnl>=0?'+':''}₹${Math.abs(Math.round(c.avgPnl)).toLocaleString('en-IN')}</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${(Math.abs(c.totalPnl)/maxAbsPnl*100).toFixed(0)}%;background:${c.totalPnl>=0?'var(--green)':'var(--red)'}"></div></div>
+      </div>`).join('');
+
+    // Bids summary table
+    const allPos=[...allPositions,...sortedCats.flatMap(c=>c.positions.filter(p=>p.participant==='Simulated participant').map(p=>({...p,catName:c.name,catIcon:c.icon,participant:'[Simulated]'})))];
+    const tableRows=allPos.slice(0,30).map((p,i)=>`<tr>
+      <td>${p.catIcon||''} ${p.catName||p.category}</td>
+      <td>${p.participant||'—'}</td>
+      <td>${p.inst||''}</td>
+      <td><span style="font-size:10px;padding:2px 7px;border-radius:3px;background:${p.dir==='long'?'var(--green-l)':'var(--red-l)'};color:${p.dir==='long'?'var(--green)':'var(--red)'};font-weight:600">${(p.dir||'').toUpperCase()}</span></td>
+      <td class="num">${p.qty||1}</td>
+      <td class="num">${typeof p.entryPx==='number'?p.entryPx.toFixed(1):'—'}</td>
+      <td class="num">${typeof p.settlementAqi==='number'?p.settlementAqi:'—'}</td>
+      <td class="${typeof p.pnl==='number'&&p.pnl>=0?'up':'dn'}">${typeof p.pnl==='number'?(p.pnl>=0?'+':'')+'₹'+Math.abs(Math.round(p.pnl)).toLocaleString('en-IN'):'—'}</td>
+    </tr>`).join('');
+    document.getElementById('bids-table').innerHTML=`<thead><tr><th>Category</th><th>Participant</th><th>Instrument</th><th>Dir</th><th>Qty</th><th>Entry</th><th>Settlement</th><th>P&L</th></tr></thead><tbody>${tableRows||'<tr><td colspan="8" style="text-align:center;color:var(--ink3);padding:20px">No bids recorded yet — go to the Trading Floor to place trades</td></tr>'}</tbody>`;
+
+    // Charts
+    renderPathChart(monthlyAqi,labels);
+    renderDistChart(mcFinals,finalAqi);
+    renderCatPnlChart(catResults);
+
+    document.getElementById('loader').classList.remove('show');
+    document.getElementById('results-section').style.display='block';
+    document.getElementById('run-btn').disabled=false;
+    window.scrollTo({top:200,behavior:'smooth'});
+  },600);
+}
+
+// ── POPULATE POSITION SELECTOR ───────────────────────────────────
+function populatePosSelect(){
+  const currentUser=JSON.parse(localStorage.getItem('daqi_current_user')||'null');
+  const positions=currentUser?JSON.parse(localStorage.getItem('daqi_positions_'+currentUser.name)||'[]'):[];
+  const sel=document.getElementById('p-pos-select');
+  if(!positions.length){sel.innerHTML='<option value="">— No positions (register first) —</option>';return}
+  sel.innerHTML='<option value="all">All my positions</option>'+positions.map((p,i)=>`<option value="${i}">${p.dir.toUpperCase()} ${p.inst}</option>`).join('');
+}
+
+// ── INIT ────────────────────────────────────────────────────────
+populatePosSelect();
+const hasPositions=JSON.parse(localStorage.getItem('daqi_current_user')||'null')!==null;
+if(!hasPositions){
+  document.getElementById('no-data-section').style.display='block';
+}
+</script>
+</body>
+</html>
