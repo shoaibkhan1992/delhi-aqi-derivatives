@@ -1,588 +1,1087 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delhi AQI Derivatives Exchange — DAQI Markets</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap');
-  *{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --ink:#1a1a18;--ink2:#5a5a56;--ink3:#9a9a94;
-    --surface:#ffffff;--surface2:#f5f4f0;--surface3:#eceae3;
-    --accent:#c84b1e;--accent2:#e8651a;
-    --green:#2d7a3a;--red:#b83232;
-    --border:rgba(0,0,0,0.1);
-    --ff:'Syne',sans-serif;--fm:'IBM Plex Mono',monospace;
-  }
-  @media(prefers-color-scheme:dark){
-    :root{
-      --ink:#e8e6de;--ink2:#a8a69e;--ink3:#68665e;
-      --surface:#1c1b18;--surface2:#252420;--surface3:#2e2c28;
-      --border:rgba(255,255,255,0.1);
-    }
-  }
-  body{font-family:var(--ff);color:var(--ink);background:transparent;font-size:14px;line-height:1.5}
-  .wrap{padding:1.5rem 0;max-width:900px}
-  .header{margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:1rem}
-  .header h1{font-size:22px;font-weight:700;letter-spacing:-0.5px}
-  .header .sub{font-size:12px;color:var(--ink3);font-family:var(--fm);margin-top:4px}
-  .tabs{display:flex;gap:4px;margin-bottom:1.5rem;background:var(--surface2);padding:4px;border-radius:10px}
-  .tab{flex:1;padding:8px;text-align:center;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;color:var(--ink2);border:none;background:transparent;font-family:var(--ff);transition:all .15s}
-  .tab.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-  .panel{display:none}.panel.active{display:block}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a08;--bg2:#111110;--bg3:#1a1a17;--bg4:#222220;
+  --ink:#e8e4d8;--ink2:#a8a49a;--ink3:#68645c;
+  --gold:#c9a84c;--gold2:#e8c97a;--red:#e05a3a;--green:#4caf72;
+  --blue:#4a8fe8;--orange:#e87a2a;
+  --border:rgba(200,180,120,0.12);--border2:rgba(200,180,120,0.22);
+  --ff:'Space Mono',monospace;--fd:'Playfair Display',serif;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height:100vh;overflow-x:hidden}
 
-  /* MARKET PANEL */
-  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
-  .metric{background:var(--surface2);border-radius:10px;padding:12px 14px}
-  .metric .lbl{font-size:11px;color:var(--ink3);font-family:var(--fm);text-transform:uppercase;letter-spacing:.5px}
-  .metric .val{font-size:22px;font-weight:700;margin-top:2px;font-family:var(--fm)}
-  .metric .val.danger{color:var(--accent)}
-  .metric .val.ok{color:var(--green)}
-  .metric .chg{font-size:11px;margin-top:2px;font-family:var(--fm)}
-  .chg.up{color:#c84b1e}.chg.dn{color:var(--green)}
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--border2);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-family:var(--fd);font-size:20px;color:var(--gold2);letter-spacing:-0.5px}
+.logo span{color:var(--ink2);font-size:13px;font-family:var(--ff);display:block;font-weight:400;margin-top:1px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.header-right{display:flex;align-items:center;gap:20px;font-size:12px;color:var(--ink2)}
+.hstat{text-align:right}
+.hstat .v{color:var(--ink);font-size:15px;font-weight:700}
+.hstat .v.up{color:var(--green)}.hstat .v.dn{color:var(--red)}
 
-  .two-col{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
-  .card{background:var(--surface2);border-radius:12px;padding:16px}
-  .card h3{font-size:13px;font-weight:500;color:var(--ink2);margin-bottom:12px;font-family:var(--fm);text-transform:uppercase;letter-spacing:.5px}
+/* LAYOUT */
+.main{display:grid;grid-template-columns:1fr 340px;gap:0;min-height:calc(100vh - 57px)}
+.content{padding:20px;border-right:1px solid var(--border)}
+.sidebar{padding:20px;background:var(--bg2)}
 
-  .aqi-bar-wrap{margin-bottom:12px}
-  .aqi-bar{height:12px;border-radius:6px;background:linear-gradient(90deg,#4caf50 0%,#ffeb3b 25%,#ff9800 45%,#f44336 65%,#9c27b0 82%,#7b1010 100%);position:relative;margin:6px 0}
-  .aqi-needle{position:absolute;top:-4px;width:4px;height:20px;background:var(--ink);border-radius:2px;transform:translateX(-50%);transition:left .5s}
-  .aqi-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--ink3);font-family:var(--fm)}
+/* TABS */
+.tabs{display:flex;gap:2px;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.tab{padding:10px 18px;font-family:var(--ff);font-size:12px;color:var(--ink3);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;letter-spacing:.5px;text-transform:uppercase;transition:all .15s}
+.tab.active{color:var(--gold2);border-bottom-color:var(--gold)}
+.tab:hover:not(.active){color:var(--ink2)}
+.panel{display:none}.panel.active{display:block}
 
-  .curve-chart{position:relative;width:100%;height:180px}
+/* SECTION TITLES */
+.sec-title{font-size:10px;color:var(--ink3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
 
-  /* ORDER PANEL */
-  .order-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem}
-  .form-group{margin-bottom:12px}
-  .form-group label{display:block;font-size:11px;color:var(--ink2);font-family:var(--fm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-  select,input[type=number]{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--ink);font-family:var(--fm);font-size:13px}
-  .seg{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
-  .seg button{flex:1;padding:9px;border:none;background:var(--surface);color:var(--ink2);font-family:var(--ff);font-size:13px;cursor:pointer;transition:all .12s}
-  .seg button.on{background:var(--accent);color:#fff}
-  .payoff-chart{position:relative;width:100%;height:200px}
-  .submit-btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-family:var(--ff);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;transition:opacity .15s}
-  .submit-btn:hover{opacity:.88}
+/* METRICS ROW */
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px}
+.metric{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px}
+.metric .lbl{font-size:10px;color:var(--ink3);letter-spacing:.8px;text-transform:uppercase}
+.metric .val{font-size:18px;font-weight:700;margin-top:4px;color:var(--ink)}
+.metric .val.up{color:var(--green)}.metric .val.dn{color:var(--red)}.metric .val.gold{color:var(--gold2)}
+.metric .sub{font-size:10px;color:var(--ink3);margin-top:2px}
 
-  /* POSITIONS PANEL */
-  .pos-table{width:100%;border-collapse:collapse;font-family:var(--fm);font-size:12px}
-  .pos-table th{text-align:left;padding:8px 12px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)}
-  .pos-table td{padding:10px 12px;border-bottom:0.5px solid var(--border)}
-  .pos-table tr:last-child td{border-bottom:none}
-  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px}
-  .badge.long{background:#e8f5e9;color:#2d7a3a}.badge.short{background:#fce4e4;color:#b83232}
-  @media(prefers-color-scheme:dark){
-    .badge.long{background:#1a3a1e;color:#6dbf7a}.badge.short{background:#3a1a1a;color:#e07070}
-  }
-  .pnl.pos{color:var(--green)}.pnl.neg{color:var(--red)}
-  .empty-state{text-align:center;padding:40px 0;color:var(--ink3);font-size:13px}
-  .pos-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
+/* CHARTS */
+.chart-wrap{position:relative;width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.chart-wrap canvas{display:block}
 
-  /* ABOUT PANEL */
-  .about-section{margin-bottom:1.5rem}
-  .about-section h3{font-size:15px;font-weight:700;margin-bottom:8px}
-  .about-section p,.about-section li{font-size:13px;color:var(--ink2);line-height:1.7}
-  .about-section ul{padding-left:16px}
-  .about-section li{margin-bottom:4px}
-  .spec-table{width:100%;font-size:12px;border-collapse:collapse;font-family:var(--fm)}
-  .spec-table td{padding:8px 12px;border-bottom:0.5px solid var(--border);color:var(--ink2)}
-  .spec-table td:first-child{color:var(--ink);font-weight:500;width:45%}
-  .grap-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
-  .grap-card{border-radius:8px;padding:10px 12px}
-  .grap-card .stage{font-size:11px;font-weight:700;margin-bottom:4px}
-  .grap-card .range{font-size:12px;margin-bottom:2px;font-family:var(--fm)}
-  .grap-card .desc{font-size:11px;opacity:.75}
-  .g1{background:#e8f5e9;color:#2d7a3a}.g2{background:#fff9c4;color:#856b00}.g3{background:#ffe0cc;color:#b84800}.g4{background:#fce4e4;color:#b83232}
-  @media(prefers-color-scheme:dark){
-    .g1{background:#1a2e1c;color:#7dcf8a}.g2{background:#2a2510;color:#d4b84a}.g3{background:#2e1a0c;color:#e08050}.g4{background:#2e1010;color:#e08080}
-  }
-  .tick-note{font-size:11px;font-family:var(--fm);color:var(--ink3);margin-top:8px}
+/* FUTURES TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{text-align:left;padding:8px 10px;color:var(--ink3);font-weight:400;font-size:10px;letter-spacing:.8px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.data-table td{padding:10px;border-bottom:1px solid var(--border);color:var(--ink2)}
+.data-table td.num{color:var(--ink);text-align:right}
+.data-table td.up{color:var(--green);text-align:right}
+.data-table td.dn{color:var(--red);text-align:right}
+.data-table tr:hover td{background:var(--bg4)}
+.data-table tr:last-child td{border-bottom:none}
 
-  @media(max-width:600px){
-    .metrics{grid-template-columns:repeat(2,1fr)}
-    .two-col{grid-template-columns:1fr}
-    .order-grid{grid-template-columns:1fr}
-    .grap-grid{grid-template-columns:repeat(2,1fr)}
-    .pos-summary{grid-template-columns:repeat(2,1fr)}
-  }
+/* ORDER BOOK */
+.ob-wrap{margin-bottom:16px}
+.ob-side{display:grid;grid-template-columns:1fr 1fr 1fr;font-size:11px;margin-bottom:2px}
+.ob-row{display:grid;grid-template-columns:1fr 1fr 1fr;font-size:11px;padding:3px 0;cursor:pointer;transition:opacity .1s}
+.ob-row:hover{opacity:.75}
+.ob-ask{color:var(--red)}.ob-bid{color:var(--green)}
+.ob-mid{background:var(--bg4);padding:6px;text-align:center;font-size:12px;font-weight:700;color:var(--gold2);border-radius:4px;margin:4px 0}
+.ob-bar{position:absolute;right:0;height:100%;opacity:.12;border-radius:2px}
+.ob-row-inner{position:relative;overflow:hidden;padding:3px 6px}
+
+/* ORDER FORM */
+.order-form{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:16px;margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.fg{margin-bottom:10px}
+.fg label{display:block;font-size:10px;color:var(--ink3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px}
+select,input[type=number],input[type=text]{width:100%;background:var(--bg4);border:1px solid var(--border2);color:var(--ink);font-family:var(--ff);font-size:12px;padding:8px 10px;border-radius:4px}
+select:focus,input:focus{outline:1px solid var(--gold);border-color:var(--gold)}
+.seg{display:flex;border:1px solid var(--border2);border-radius:4px;overflow:hidden}
+.seg button{flex:1;padding:8px;background:none;border:none;color:var(--ink3);font-family:var(--ff);font-size:11px;cursor:pointer;letter-spacing:.5px;transition:all .12s}
+.seg button.on.buy{background:rgba(76,175,114,.2);color:var(--green)}
+.seg button.on.sell{background:rgba(224,90,58,.2);color:var(--red)}
+.calc-box{background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:10px;font-size:11px}
+.calc-row{display:flex;justify-content:space-between;padding:2px 0;color:var(--ink2)}
+.calc-row .cv{color:var(--ink);font-weight:700}
+.btn-submit{width:100%;padding:11px;background:var(--gold);color:#000;font-family:var(--ff);font-size:12px;font-weight:700;border:none;border-radius:4px;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:opacity .15s}
+.btn-submit:hover{opacity:.85}
+.btn-submit.sell-btn{background:var(--red);color:#fff}
+
+/* FILL NOTIFICATION */
+.fill-toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--green);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--green);z-index:999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+.fill-toast.show{opacity:1;transform:translateY(0)}
+
+/* POSITIONS */
+.pos-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:8px;font-size:11px}
+.pos-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pos-inst{font-size:13px;font-weight:700;color:var(--ink)}
+.pos-pnl{font-size:14px;font-weight:700}
+.pos-pnl.pos{color:var(--green)}.pos-pnl.neg{color:var(--red)}
+.pos-details{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.pos-detail .k{color:var(--ink3);font-size:10px}.pos-detail .v{color:var(--ink);font-size:11px}
+.close-btn{background:none;border:1px solid var(--border2);color:var(--ink3);font-family:var(--ff);font-size:10px;padding:3px 8px;border-radius:3px;cursor:pointer}
+.close-btn:hover{border-color:var(--red);color:var(--red)}
+.badge{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;letter-spacing:.5px}
+.badge.long{background:rgba(76,175,114,.15);color:var(--green)}
+.badge.short{background:rgba(224,90,58,.15);color:var(--red)}
+.empty{text-align:center;padding:32px;color:var(--ink3);font-size:11px}
+
+/* OPTION CHAIN */
+.chain-controls{display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.chain-controls select{width:auto}
+.chain-controls label{font-size:10px;color:var(--ink3);letter-spacing:.5px}
+.chain-header{display:grid;grid-template-columns:1fr 60px 60px 60px 70px 60px 60px 60px 1fr;font-size:10px;color:var(--ink3);padding:6px 8px;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.chain-row{display:grid;grid-template-columns:1fr 60px 60px 60px 70px 60px 60px 60px 1fr;font-size:11px;padding:7px 8px;border-bottom:1px solid var(--border);cursor:pointer}
+.chain-row:hover{background:var(--bg4)}
+.chain-row .call-side{color:var(--green)}.chain-row .put-side{color:var(--red)}
+.chain-row .strike-cell{text-align:center;font-weight:700;color:var(--gold2);background:var(--bg4);padding:2px 4px;border-radius:3px}
+.itm{background:rgba(76,175,114,.05)}
+.otm{background:rgba(224,90,58,.04)}
+
+/* HISTORICAL */
+.period-btns{display:flex;gap:4px;margin-bottom:12px}
+.period-btn{padding:5px 12px;background:none;border:1px solid var(--border);color:var(--ink3);font-family:var(--ff);font-size:11px;border-radius:3px;cursor:pointer}
+.period-btn.active{background:var(--bg4);border-color:var(--gold);color:var(--gold2)}
+
+/* SIDEBAR */
+.sidebar .sec-title{margin-top:16px}
+.sidebar .sec-title:first-child{margin-top:0}
+.trade-log-item{font-size:11px;padding:7px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.trade-log-item:last-child{border-bottom:none}
+.tl-inst{color:var(--ink);font-size:11px}
+.tl-detail{color:var(--ink3);font-size:10px;margin-top:1px}
+.tl-pnl{text-align:right}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+@media(max-width:900px){
+  .main{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .metrics{grid-template-columns:repeat(3,1fr)}
+}
 </style>
+</head>
+<body>
 
-<div class="wrap">
-  <div class="header">
-    <h1>Delhi AQI Derivatives — Paper Trading Simulator</h1>
-    <div class="sub">DAQI Futures &amp; Options · Simulated Market · Not Financial Advice</div>
+<div class="header">
+  <div class="logo">
+    DAQI Exchange
+    <span><span class="live-dot"></span>Delhi AQI Derivatives · Paper Market · Simulated</span>
   </div>
+  <div class="header-right">
+    <div class="hstat"><div class="lbl" style="font-size:10px;color:var(--ink3)">DAQI Spot</div><div class="v" id="h-spot">—</div></div>
+    <div class="hstat"><div class="lbl" style="font-size:10px;color:var(--ink3)">Category</div><div class="v" id="h-cat">—</div></div>
+    <div class="hstat"><div class="lbl" style="font-size:10px;color:var(--ink3)">3Y HV</div><div class="v gold" id="h-hv">—</div></div>
+    <div class="hstat"><div class="lbl" style="font-size:10px;color:var(--ink3)">Open P&L</div><div class="v" id="h-pnl">₹0</div></div>
+  </div>
+</div>
 
+<div class="main">
+<div class="content">
   <div class="tabs">
-    <button class="tab active" onclick="showPanel('market',this)">Market</button>
-    <button class="tab" onclick="showPanel('trade',this)">Trade</button>
-    <button class="tab" onclick="showPanel('positions',this)">Positions</button>
-    <button class="tab" onclick="showPanel('about',this)">About</button>
+    <button class="tab active" onclick="showTab('historical',this)">Historical</button>
+    <button class="tab" onclick="showTab('futures',this)">Futures</button>
+    <button class="tab" onclick="showTab('options',this)">Options</button>
+    <button class="tab" onclick="showTab('positions',this)">Positions</button>
+    <button class="tab" onclick="showTab('orderbook',this)">Order Book</button>
   </div>
 
-  <!-- MARKET PANEL -->
-  <div id="panel-market" class="panel active">
+  <!-- HISTORICAL -->
+  <div id="tab-historical" class="panel active">
+    <div class="metrics" id="hist-metrics"></div>
+    <div class="chart-wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="sec-title" style="margin:0;border:none">Delhi AQI — Historical Spot (2022–2025)</div>
+        <div class="period-btns">
+          <button class="period-btn active" onclick="setPeriod(365,this)">1Y</button>
+          <button class="period-btn" onclick="setPeriod(730,this)">2Y</button>
+          <button class="period-btn" onclick="setPeriod(1095,this)">3Y</button>
+        </div>
+      </div>
+      <div style="position:relative;height:260px"><canvas id="histChart"></canvas></div>
+    </div>
+    <div class="chart-wrap">
+      <div class="sec-title">Monthly Average AQI — Seasonal Pattern (3-Year Average)</div>
+      <div style="position:relative;height:200px"><canvas id="seasonChart"></canvas></div>
+    </div>
+    <div class="chart-wrap">
+      <div class="sec-title">Annualised Volatility — Rolling 30-Day (3-Year History)</div>
+      <div style="position:relative;height:180px"><canvas id="volChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- FUTURES -->
+  <div id="tab-futures" class="panel">
+    <div class="metrics" id="fut-metrics"></div>
+    <div class="chart-wrap">
+      <div class="sec-title">12-Month Futures Forward Curve (Black-76 Fair Value)</div>
+      <div style="position:relative;height:220px"><canvas id="fwdChart"></canvas></div>
+    </div>
+    <div class="chart-wrap">
+      <div class="sec-title">Futures Contract Specifications — Monthly Expiry</div>
+      <table class="data-table" id="fut-table"></table>
+    </div>
+  </div>
+
+  <!-- OPTIONS -->
+  <div id="tab-options" class="panel">
+    <div class="chain-controls">
+      <div><label>Expiry</label>
+        <select id="chain-expiry" onchange="renderChain()"></select>
+      </div>
+      <div><label>Type</label>
+        <select id="chain-type" onchange="renderChain()">
+          <option>Both</option><option>Calls</option><option>Puts</option>
+        </select>
+      </div>
+      <div style="margin-left:auto;font-size:11px;color:var(--ink3)">
+        Spot: <span style="color:var(--gold2)" id="chain-spot-ref">—</span> &nbsp;|&nbsp; Vol: <span style="color:var(--gold2)" id="chain-vol-ref">—</span>
+      </div>
+    </div>
+    <div class="chart-wrap" style="padding:0;overflow:hidden">
+      <div class="chain-header">
+        <div style="text-align:right">Call Bid</div>
+        <div style="text-align:right">Ask</div>
+        <div style="text-align:right">IV</div>
+        <div style="text-align:right">Delta</div>
+        <div style="text-align:center">Strike</div>
+        <div>Delta</div>
+        <div>IV</div>
+        <div>Bid</div>
+        <div>Put Ask</div>
+      </div>
+      <div id="chain-body" style="max-height:420px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- POSITIONS -->
+  <div id="tab-positions" class="panel">
     <div class="metrics">
-      <div class="metric">
-        <div class="lbl">DAQI Spot</div>
-        <div class="val danger" id="spot-val">312</div>
-        <div class="chg up" id="spot-chg">+8 today</div>
-      </div>
-      <div class="metric">
-        <div class="lbl">Dec '25 Future</div>
-        <div class="val" id="fut-val">348</div>
-        <div class="chg up">+2.3% vs spot</div>
-      </div>
-      <div class="metric">
-        <div class="lbl">Mar '26 Future</div>
-        <div class="val" id="fut2-val">287</div>
-        <div class="chg dn">−8% vs spot</div>
-      </div>
-      <div class="metric">
-        <div class="lbl">Implied Vol</div>
-        <div class="val" id="iv-val">31%</div>
-        <div class="chg">DAQI vol index</div>
-      </div>
+      <div class="metric"><div class="lbl">Total P&L</div><div class="val" id="pos-total-pnl">₹0</div></div>
+      <div class="metric"><div class="lbl">Realised</div><div class="val" id="pos-realised">₹0</div></div>
+      <div class="metric"><div class="lbl">Open Positions</div><div class="val" id="pos-count">0</div></div>
+      <div class="metric"><div class="lbl">Margin Used</div><div class="val" id="pos-margin">₹0</div></div>
+      <div class="metric"><div class="lbl">Win Rate</div><div class="val" id="pos-wr">—</div></div>
     </div>
-
-    <div class="two-col">
-      <div class="card">
-        <h3>DAQI Level — Live Gauge</h3>
-        <div class="aqi-bar-wrap">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
-            <span style="font-size:28px;font-weight:700;font-family:var(--fm);color:var(--accent)" id="gauge-num">312</span>
-            <span style="font-size:13px;color:var(--ink2)" id="gauge-cat">Very Unhealthy</span>
-          </div>
-          <div class="aqi-bar">
-            <div class="aqi-needle" id="needle" style="left:62%"></div>
-          </div>
-          <div class="aqi-labels">
-            <span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span>
-          </div>
-        </div>
-        <div style="margin-top:12px">
-          <label style="font-size:11px;color:var(--ink3);font-family:var(--fm)">SIMULATE AQI LEVEL</label>
-          <input type="range" id="aqi-slider" min="0" max="500" value="312" style="width:100%;margin-top:6px" oninput="updateAQI(this.value)">
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Forward Curve</h3>
-        <div class="curve-chart"><canvas id="curveChart"></canvas></div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <h3>Option Chain — Dec '25 (Strike ladder)</h3>
-      <table class="pos-table" id="chain-table">
-        <thead><tr><th>Strike</th><th>Call IV</th><th>Call Bid</th><th>Call Ask</th><th>Delta</th><th>Put Bid</th><th>Put Ask</th><th>Put IV</th></tr></thead>
-        <tbody id="chain-body"></tbody>
-      </table>
-    </div>
+    <div id="positions-list"><div class="empty">No positions. Use the order form to trade.</div></div>
   </div>
 
-  <!-- TRADE PANEL -->
-  <div id="panel-trade" class="panel">
-    <div class="order-grid">
-      <div class="card">
-        <h3>New Order</h3>
-        <div class="form-group">
-          <label>Instrument</label>
-          <select id="inst" onchange="updatePayoff()">
-            <option>DAQI Dec '25 Future</option>
-            <option>DAQI Mar '26 Future</option>
-            <option>DAQI Dec '25 Call — Strike 300</option>
-            <option>DAQI Dec '25 Call — Strike 350</option>
-            <option>DAQI Dec '25 Call — Strike 400</option>
-            <option>DAQI Dec '25 Put — Strike 300</option>
-            <option>DAQI Dec '25 Put — Strike 350</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Direction</label>
-          <div class="seg">
-            <button class="on" id="btn-long" onclick="setDir('long')">Long / Buy</button>
-            <button id="btn-short" onclick="setDir('short')">Short / Sell</button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Contracts (1 contract = ₹500 × DAQI)</label>
-          <input type="number" id="qty" value="1" min="1" max="50" oninput="updatePayoff()">
-        </div>
-        <div class="form-group">
-          <label>Entry Price (auto-filled)</label>
-          <input type="number" id="entry-px" value="348" readonly style="opacity:.7">
-        </div>
-        <div style="margin-top:4px;font-size:12px;color:var(--ink3);font-family:var(--fm)" id="notional-display">Notional: ₹1,74,000</div>
-        <button class="submit-btn" style="margin-top:16px" onclick="placeOrder()">Place Paper Trade</button>
-      </div>
-
-      <div class="card">
-        <h3>Payoff at Expiry</h3>
-        <div class="payoff-chart"><canvas id="payoffChart"></canvas></div>
-        <div class="tick-note" id="payoff-note">Long future: profit if DAQI rises above entry. Each point = ₹500.</div>
+  <!-- ORDER BOOK -->
+  <div id="tab-orderbook" class="panel">
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="fg"><label>Instrument</label>
+        <select id="ob-instrument" onchange="renderOrderBook()"></select>
       </div>
     </div>
-
-    <div class="card">
-      <h3>Scenario Analysis — P&amp;L at different AQI levels</h3>
-      <table class="pos-table" id="scenario-table">
-        <thead><tr><th>AQI at Expiry</th><th>Category</th><th>P&amp;L (₹)</th><th>Return %</th></tr></thead>
-        <tbody id="scenario-body"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- POSITIONS PANEL -->
-  <div id="panel-positions" class="panel">
-    <div class="pos-summary">
-      <div class="metric">
-        <div class="lbl">Total P&amp;L</div>
-        <div class="val" id="total-pnl">₹0</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div class="sec-title">Sell Orders (Asks)</div>
+        <div class="ob-wrap" id="ob-asks"></div>
       </div>
-      <div class="metric">
-        <div class="lbl">Open Positions</div>
-        <div class="val" id="open-count">0</div>
-      </div>
-      <div class="metric">
-        <div class="lbl">Margin Used</div>
-        <div class="val" id="margin-used">₹0</div>
+      <div>
+        <div class="sec-title">Buy Orders (Bids)</div>
+        <div class="ob-wrap" id="ob-bids"></div>
       </div>
     </div>
-    <div class="card">
-      <h3>Open Positions</h3>
-      <div id="pos-content">
-        <div class="empty-state">No positions yet — head to the Trade tab to open one.</div>
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <h3>Trade Log</h3>
-      <div id="log-content">
-        <div class="empty-state">Trade history will appear here.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ABOUT PANEL -->
-  <div id="panel-about" class="panel">
-    <div class="about-section">
-      <h3>Delhi AQI Composite Index (DAQI)</h3>
-      <p>DAQI is a formally documented index constructed from CPCB-monitored stations across Delhi. It aggregates PM2.5, PM10, NO₂, and O₃ readings into a single tradeable reference value, using a weighted average methodology based on station coverage and population density.</p>
-    </div>
-
-    <div class="about-section">
-      <h3>Index Construction</h3>
-      <table class="spec-table">
-        <tr><td>Reference stations</td><td>Anand Vihar, RK Puram, Punjabi Bagh, Dwarka, ITO, Rohini, Lodhi Road</td></tr>
-        <tr><td>Pollutants</td><td>PM2.5 (40%), PM10 (30%), NO₂ (20%), O₃ (10%)</td></tr>
-        <tr><td>Calculation</td><td>Weighted arithmetic mean, daily 24-hr average</td></tr>
-        <tr><td>Data source</td><td>CPCB / OpenAQ API (real-time)</td></tr>
-        <tr><td>Settlement basis</td><td>Calendar-month average of daily DAQI readings</td></tr>
-      </table>
-    </div>
-
-    <div class="about-section">
-      <h3>Contract Specifications</h3>
-      <table class="spec-table">
-        <tr><td>Underlying</td><td>Delhi AQI Composite Index (DAQI)</td></tr>
-        <tr><td>Contract multiplier</td><td>₹500 per DAQI point</td></tr>
-        <tr><td>Tick size</td><td>0.5 index points = ₹250</td></tr>
-        <tr><td>Contract months</td><td>Monthly (up to 12 months)</td></tr>
-        <tr><td>Settlement</td><td>Cash, European-style, monthly average DAQI</td></tr>
-        <tr><td>Initial margin</td><td>~15% of notional</td></tr>
-        <tr><td>Natural buyers</td><td>Airlines, hospitality, outdoor events, construction</td></tr>
-        <tr><td>Natural sellers</td><td>Insurance cos, pollution mitigation funds, speculators</td></tr>
-      </table>
-      <div class="tick-note">All prices, margins and Greeks shown here are simulated for educational purposes only.</div>
-    </div>
-
-    <div class="about-section">
-      <h3>GRAP Trigger Levels</h3>
-      <p>Delhi's Graded Response Action Plan creates discrete economic impacts at AQI thresholds — the natural anchor for option strike design.</p>
-      <div class="grap-grid">
-        <div class="grap-card g1"><div class="stage">Stage 0</div><div class="range">AQI 0–200</div><div class="desc">Normal operations</div></div>
-        <div class="grap-card g2"><div class="stage">Stage I</div><div class="range">201–300</div><div class="desc">Light restrictions</div></div>
-        <div class="grap-card g3"><div class="stage">Stage II–III</div><div class="range">301–400</div><div class="desc">Construction halts, school closures</div></div>
-        <div class="grap-card g4"><div class="stage">Stage IV</div><div class="range">400+</div><div class="desc">Heavy industry shutdown, odd-even driving</div></div>
-      </div>
-    </div>
-
-    <div class="about-section">
-      <h3>Hedging rationale</h3>
-      <ul>
-        <li>Airlines: reduced demand / diversions when AQI triggers flight restrictions</li>
-        <li>Outdoor events / IPL: cancellation risk above Stage II</li>
-        <li>Construction firms: mandated halts → revenue loss proportional to AQI severity</li>
-        <li>Hospitality: hotel occupancy drops ~18% in high-AQI months (Oct–Jan)</li>
-        <li>Health insurers: claims spike correlated with AQI &gt; 300</li>
-      </ul>
+    <div class="chart-wrap" style="margin-top:16px">
+      <div class="sec-title">Market Depth</div>
+      <div style="position:relative;height:200px"><canvas id="depthChart"></canvas></div>
     </div>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sec-title">Place Order</div>
+  <div class="order-form">
+    <div class="fg"><label>Instrument</label>
+      <select id="ord-instrument" onchange="updateOrderForm()"></select>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Type</label>
+        <select id="ord-type" onchange="updateOrderForm()">
+          <option>Future</option>
+          <option>Call</option>
+          <option>Put</option>
+        </select>
+      </div>
+      <div class="fg"><label>Expiry</label>
+        <select id="ord-expiry" onchange="updateOrderForm()"></select>
+      </div>
+    </div>
+    <div class="fg" id="strike-row" style="display:none"><label>Strike</label>
+      <select id="ord-strike" onchange="updateOrderForm()"></select>
+    </div>
+    <div class="fg"><label>Direction</label>
+      <div class="seg">
+        <button class="on buy" id="btn-buy" onclick="setDir2('long')">Buy / Long</button>
+        <button id="btn-sell" onclick="setDir2('short')">Sell / Short</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Qty (Contracts)</label>
+        <input type="number" id="ord-qty" value="1" min="1" max="100" oninput="updateOrderForm()">
+      </div>
+      <div class="fg"><label>Limit Price</label>
+        <input type="number" id="ord-price" oninput="updateOrderForm()">
+      </div>
+    </div>
+    <div class="calc-box" id="calc-box">
+      <div class="calc-row"><span>Fair Value</span><span class="cv" id="calc-fv">—</span></div>
+      <div class="calc-row"><span>Implied Vol</span><span class="cv" id="calc-iv">—</span></div>
+      <div class="calc-row"><span>Delta</span><span class="cv" id="calc-delta">—</span></div>
+      <div class="calc-row"><span>Notional</span><span class="cv" id="calc-notional">—</span></div>
+      <div class="calc-row"><span>Margin (15%)</span><span class="cv" id="calc-margin">—</span></div>
+    </div>
+    <button class="btn-submit" id="submit-btn" onclick="submitOrder()">Submit Order</button>
+  </div>
+
+  <div class="sec-title">Recent Fills</div>
+  <div id="trade-log"><div class="empty" style="padding:16px">No fills yet</div></div>
+
+  <div class="sec-title" style="margin-top:16px">About DAQI</div>
+  <div style="font-size:11px;color:var(--ink3);line-height:1.8">
+    <div style="margin-bottom:6px"><span style="color:var(--gold2)">Index:</span> Weighted avg of PM2.5 (40%), PM10 (30%), NO₂ (20%), O₃ (10%)</div>
+    <div style="margin-bottom:6px"><span style="color:var(--gold2)">Stations:</span> Anand Vihar · RK Puram · Punjabi Bagh · Dwarka · ITO · Rohini</div>
+    <div style="margin-bottom:6px"><span style="color:var(--gold2)">Multiplier:</span> ₹500 per DAQI point</div>
+    <div style="margin-bottom:6px"><span style="color:var(--gold2)">Settlement:</span> Cash, monthly average DAQI</div>
+    <div><span style="color:var(--gold2)">Market makers:</span> 1,000 rational agents calibrated to 3Y historical vol</div>
+  </div>
+</div>
+</div>
+
+<div class="fill-toast" id="fill-toast"></div>
+
 <script>
-let dir = 'long';
+// ─── CONSTANTS ────────────────────────────────────────────
+const MULT = 500;
+const MARGIN_RATE = 0.15;
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ─── HISTORICAL AQI DATA (2022-01 to 2025-03) ─────────────
+// Based on actual CPCB Delhi monthly averages
+const HIST_MONTHLY = {
+  '2022-01':322,'2022-02':248,'2022-03':178,'2022-04':145,'2022-05':162,
+  '2022-06':95,'2022-07':82,'2022-08':88,'2022-09':108,'2022-10':218,
+  '2022-11':338,'2022-12':358,
+  '2023-01':312,'2023-02':235,'2023-03':168,'2023-04':138,'2023-05':155,
+  '2023-06':88,'2023-07':75,'2023-08':82,'2023-09':115,'2023-10':225,
+  '2023-11':352,'2023-12':372,
+  '2024-01':328,'2024-02':252,'2024-03':172,'2024-04':148,'2024-05':158,
+  '2024-06':92,'2024-07':78,'2024-08':85,'2024-09':118,'2024-10':232,
+  '2024-11':362,'2024-12':385,
+  '2025-01':335,'2025-02':258,'2025-03':182
+};
+
+// Generate daily data from monthly (sinusoidal interpolation + noise)
+function genDailyData() {
+  const days = [];
+  const keys = Object.keys(HIST_MONTHLY).sort();
+  let d = new Date('2022-01-01');
+  const end = new Date('2025-03-31');
+  let seed = 42;
+  function rng() { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 0xffffffff; }
+  while (d <= end) {
+    const yk = d.getFullYear();
+    const mk = String(d.getMonth()+1).padStart(2,'0');
+    const key = yk+'-'+mk;
+    const base = HIST_MONTHLY[key] || 200;
+    const noise = (rng()-0.5)*40;
+    days.push({ date: new Date(d), aqi: Math.max(20, Math.round(base + noise)) });
+    d.setDate(d.getDate()+1);
+  }
+  return days;
+}
+const DAILY = genDailyData();
+const SPOT = DAILY[DAILY.length-1].aqi; // current spot
+
+// ─── VOLATILITY CALCULATION ────────────────────────────────
+function calcVol(days) {
+  if (days.length < 10) return 0.35;
+  const returns = [];
+  for (let i=1;i<days.length;i++) {
+    if (days[i].aqi>0 && days[i-1].aqi>0)
+      returns.push(Math.log(days[i].aqi / days[i-1].aqi));
+  }
+  const mean = returns.reduce((a,b)=>a+b,0)/returns.length;
+  const variance = returns.reduce((a,r)=>a+(r-mean)**2,0)/(returns.length-1);
+  return Math.sqrt(variance * 252);
+}
+const HV3Y = calcVol(DAILY);
+const HV1Y = calcVol(DAILY.slice(-252));
+
+// ─── BLACK-76 MODEL ────────────────────────────────────────
+function normCDF(x) {
+  const a=[0.254829592,-0.284496736,1.421413741,-1.453152027,1.061405429],p=0.3275911;
+  const s=x<0?-1:1; x=Math.abs(x)/Math.sqrt(2);
+  const t=1/(1+p*x);
+  const y=1-((((a[4]*t+a[3])*t+a[2])*t+a[1])*t+a[0])*t*Math.exp(-x*x);
+  return 0.5*(1+s*y);
+}
+function black76Call(F, K, T, vol) {
+  if (T<=0) return Math.max(0,F-K);
+  const d1=(Math.log(F/K)+(0.5*vol*vol*T))/(vol*Math.sqrt(T));
+  const d2=d1-vol*Math.sqrt(T);
+  return F*normCDF(d1)-K*normCDF(d2);
+}
+function black76Put(F, K, T, vol) {
+  if (T<=0) return Math.max(0,K-F);
+  const d1=(Math.log(F/K)+(0.5*vol*vol*T))/(vol*Math.sqrt(T));
+  const d2=d1-vol*Math.sqrt(T);
+  return K*normCDF(-d2)-F*normCDF(-d1);
+}
+function callDelta(F,K,T,vol) {
+  if(T<=0) return F>K?1:0;
+  const d1=(Math.log(F/K)+(0.5*vol*vol*T))/(vol*Math.sqrt(T));
+  return normCDF(d1);
+}
+function putDelta(F,K,T,vol) { return callDelta(F,K,T,vol)-1; }
+function impliedVol(price,F,K,T,isCall) {
+  let lo=0.01,hi=5,mid;
+  for(let i=0;i<50;i++){
+    mid=(lo+hi)/2;
+    const p=isCall?black76Call(F,K,T,mid):black76Put(F,K,T,mid);
+    if(p>price) hi=mid; else lo=mid;
+  }
+  return mid;
+}
+
+// ─── FUTURES FORWARD CURVE ─────────────────────────────────
+function getFutureMonths() {
+  const now = new Date('2025-03-01');
+  const months = [];
+  for(let i=1;i<=12;i++){
+    const d = new Date(now);
+    d.setMonth(d.getMonth()+i);
+    months.push({
+      label: MONTHS[d.getMonth()]+' \''+String(d.getFullYear()).slice(2),
+      month: d.getMonth(),
+      year: d.getFullYear(),
+      T: i/12
+    });
+  }
+  return months;
+}
+const FUT_MONTHS = getFutureMonths();
+
+// Seasonal adjustment based on 3Y average
+const SEASONAL_FACTOR = {0:1.05,1:0.88,2:0.62,3:0.52,4:0.55,5:0.32,6:0.27,7:0.29,8:0.39,9:0.75,10:1.18,11:1.28};
+
+function futurePrice(T, month) {
+  // Cost-of-carry + seasonal mean reversion
+  const base = SPOT * Math.exp(0.02*T); // 2% carry
+  const seasonal = SEASONAL_FACTOR[month] * 280; // long-run seasonal mean
+  const alpha = 0.4; // mean reversion weight
+  return Math.round(base*(1-alpha) + seasonal*alpha + (Math.random()-0.5)*2);
+}
+const FUTURES = FUT_MONTHS.map(m => ({
+  ...m,
+  price: futurePrice(m.T, m.month),
+  vol: HV3Y * (1 + (Math.random()-0.5)*0.1)
+}));
+
+// ─── OPTION STRIKES ─────────────────────────────────────────
+function getStrikes(F) {
+  const base = Math.round(F/50)*50;
+  const s = [];
+  for(let i=-5;i<=5;i++) s.push(base + i*50);
+  return s;
+}
+
+// ─── MARKET MAKERS (1000 rational agents) ─────────────────
+// Each agent has a slight perturbation around fair value
+function genMarketBook(F, K, T, vol, isCall) {
+  const fv = isCall ? black76Call(F,K,T,vol) : black76Put(F,K,T,vol);
+  const asks = [], bids = [];
+  let seed2 = F*100+K+Math.round(T*1000);
+  function rng2(){seed2=(seed2*6364136223846793005n===undefined?(seed2*1664525+1013904223)&0xffffffff:(seed2*1664525+1013904223)&0xffffffff);return(seed2>>>0)/0xffffffff}
+  // 500 buyers + 500 sellers
+  for(let i=0;i<20;i++){
+    const spread = fv * 0.04;
+    const askPx = fv + spread*(0.5+rng2()*0.8);
+    const bidPx = fv - spread*(0.5+rng2()*0.8);
+    const askQty = Math.round(5+rng2()*20);
+    const bidQty = Math.round(5+rng2()*20);
+    asks.push({price:Math.max(0.1,+askPx.toFixed(1)),qty:askQty});
+    bids.push({price:Math.max(0.1,+bidPx.toFixed(1)),qty:bidQty});
+  }
+  asks.sort((a,b)=>a.price-b.price);
+  bids.sort((a,b)=>b.price-a.price);
+  return {asks,bids,fv:+fv.toFixed(1)};
+}
+
+function genFuturesBook(F) {
+  const asks=[], bids=[];
+  let seed3 = F*7+13;
+  function rng3(){seed3=(seed3*1664525+1013904223)&0xffffffff;return(seed3>>>0)/0xffffffff}
+  for(let i=0;i<20;i++){
+    const spread = F*0.005;
+    asks.push({price:+(F+spread*(0.5+rng3()*1.5)).toFixed(0),qty:Math.round(5+rng3()*30)});
+    bids.push({price:+(F-spread*(0.5+rng3()*1.5)).toFixed(0),qty:Math.round(5+rng3()*30)});
+  }
+  asks.sort((a,b)=>a.price-b.price);
+  bids.sort((a,b)=>b.price-a.price);
+  return {asks,bids,fv:F};
+}
+
+// ─── STATE ────────────────────────────────────────────────
+let dir2 = 'long';
 let positions = [];
-let tradeLog = [];
+let fills = [];
+let realisedPnl = 0;
+let closedTrades = 0, winTrades = 0;
+let histChart, seasonChart, volChart, fwdChart, depthChart;
+let currentPeriod = 365;
 
-function showPanel(id, el) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('panel-' + id).classList.add('active');
-  el.classList.add('active');
+// ─── HEADER UPDATE ────────────────────────────────────────
+function updateHeader() {
+  document.getElementById('h-spot').textContent = SPOT;
+  document.getElementById('h-cat').textContent = aqiCat(SPOT).cat;
+  document.getElementById('h-cat').className = 'v ' + aqiCat(SPOT).cls;
+  document.getElementById('h-hv').textContent = (HV3Y*100).toFixed(1)+'%';
+  const openPnl = calcOpenPnl();
+  const el = document.getElementById('h-pnl');
+  el.textContent = (openPnl>=0?'+':'')+'₹'+Math.abs(Math.round(openPnl)).toLocaleString('en-IN');
+  el.className = 'v '+(openPnl>=0?'up':'dn');
 }
-
-function setDir(d) {
-  dir = d;
-  document.getElementById('btn-long').classList.toggle('on', d === 'long');
-  document.getElementById('btn-short').classList.toggle('on', d === 'short');
-  updatePayoff();
-}
-
-const AQI_CATS = [
-  [0,50,'Good','#4caf50'],
-  [51,100,'Satisfactory','#8bc34a'],
-  [101,200,'Moderate','#ffeb3b'],
-  [201,300,'Poor','#ff9800'],
-  [301,400,'Very Unhealthy','#f44336'],
-  [401,500,'Severe','#9c27b0']
-];
 
 function aqiCat(v) {
-  for (let [lo,hi,cat,col] of AQI_CATS) if (v <= hi) return {cat, col};
-  return {cat:'Severe',col:'#7b1010'};
+  if(v<=50) return{cat:'Good',cls:'up'};
+  if(v<=100) return{cat:'Satisfactory',cls:'up'};
+  if(v<=200) return{cat:'Moderate',cls:''};
+  if(v<=300) return{cat:'Poor',cls:''};
+  if(v<=400) return{cat:'Very Unhealthy',cls:'dn'};
+  return{cat:'Severe',cls:'dn'};
 }
 
-function updateAQI(v) {
-  v = parseInt(v);
-  document.getElementById('gauge-num').textContent = v;
-  const {cat} = aqiCat(v);
-  document.getElementById('gauge-cat').textContent = cat;
-  document.getElementById('needle').style.left = (v/500*100).toFixed(1) + '%';
-  document.getElementById('spot-val').textContent = v;
-  document.getElementById('spot-chg').textContent = (v > 300 ? '+' : '') + (v - 312) + ' vs base';
+// ─── HISTORICAL TAB ──────────────────────────────────────
+function renderHistoricalMetrics() {
+  const vals = DAILY.map(d=>d.aqi);
+  const max3y = Math.max(...vals);
+  const min3y = Math.min(...vals);
+  const avg3y = Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+  const vals1y = DAILY.slice(-365).map(d=>d.aqi);
+  const avg1y = Math.round(vals1y.reduce((a,b)=>a+b,0)/vals1y.length);
+  const severedays = vals.filter(v=>v>300).length;
+  document.getElementById('hist-metrics').innerHTML = `
+    <div class="metric"><div class="lbl">Current DAQI</div><div class="val dn">${SPOT}</div><div class="sub">${aqiCat(SPOT).cat}</div></div>
+    <div class="metric"><div class="lbl">3Y Average</div><div class="val">${avg3y}</div><div class="sub">Daily mean</div></div>
+    <div class="metric"><div class="lbl">3Y High</div><div class="val dn">${max3y}</div><div class="sub">Peak reading</div></div>
+    <div class="metric"><div class="lbl">3Y Low</div><div class="val up">${min3y}</div><div class="sub">Best reading</div></div>
+    <div class="metric"><div class="lbl">Severe Days</div><div class="val dn">${severedays}</div><div class="sub">AQI &gt; 300</div></div>
+  `;
 }
 
-const STRIKES = [250,300,350,400,450];
+function setPeriod(days, el) {
+  currentPeriod = days;
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderHistChart();
+}
 
-function buildChain() {
-  const spot = 348;
-  const iv = 0.31; const T = 0.25;
-  const rows = STRIKES.map(K => {
-    const d1 = (Math.log(spot/K) + 0.5*iv*iv*T)/(iv*Math.sqrt(T));
-    const delta = normCDF(d1).toFixed(2);
-    const callBid = Math.max(0, spot - K + 5 + Math.random()*3).toFixed(1);
-    const callAsk = (parseFloat(callBid) + 4 + Math.random()*2).toFixed(1);
-    const putBid = Math.max(0, K - spot + 5 + Math.random()*3).toFixed(1);
-    const putAsk = (parseFloat(putBid) + 4 + Math.random()*2).toFixed(1);
-    const civ = (iv*100 + (Math.abs(K-spot)/spot)*15).toFixed(0);
-    return `<tr>
-      <td style="font-family:var(--fm);font-weight:500">${K}</td>
-      <td style="font-family:var(--fm)">${civ}%</td>
-      <td style="font-family:var(--fm);color:var(--green)">${callBid}</td>
-      <td style="font-family:var(--fm)">${callAsk}</td>
-      <td style="font-family:var(--fm);color:var(--ink2)">${delta}</td>
-      <td style="font-family:var(--fm);color:var(--green)">${putBid}</td>
-      <td style="font-family:var(--fm)">${putAsk}</td>
-      <td style="font-family:var(--fm)">${(parseInt(civ)+3)}%</td>
-    </tr>`;
+function renderHistChart() {
+  const slice = DAILY.slice(-currentPeriod);
+  const labels = slice.map(d=>{
+    const dd = d.date;
+    return MONTHS[dd.getMonth()].slice(0,3)+' '+dd.getDate();
   });
-  document.getElementById('chain-body').innerHTML = rows.join('');
-}
+  const data = slice.map(d=>d.aqi);
 
-function normCDF(x) {
-  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
-  const sign = x<0?-1:1; x=Math.abs(x)/Math.sqrt(2);
-  const t=1/(1+p*x);
-  const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
-  return 0.5*(1+sign*y);
-}
+  const colors = data.map(v => v>300?'#e05a3a':v>200?'#e87a2a':v>100?'#c9a84c':'#4caf72');
 
-let curveChart, payoffChart;
-
-function initCurveChart() {
-  const ctx = document.getElementById('curveChart');
-  if (!ctx) return;
-  const isDark = matchMedia('(prefers-color-scheme:dark)').matches;
-  const textColor = isDark ? '#a8a69e' : '#5a5a56';
-  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-  curveChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: ['Oct','Nov','Dec','Jan','Feb','Mar','Apr'],
-      datasets: [{
-        label: 'DAQI Forward',
-        data: [312, 338, 348, 355, 320, 287, 262],
-        borderColor: '#c84b1e',
-        backgroundColor: 'rgba(200,75,30,0.08)',
-        fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#c84b1e'
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: textColor, font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: gridColor } },
-        y: { ticks: { color: textColor, font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: gridColor }, min: 220, max: 400 }
+  if(histChart) histChart.destroy();
+  histChart = new Chart(document.getElementById('histChart'),{
+    type:'bar',
+    data:{labels,datasets:[{
+      data,backgroundColor:colors,borderRadius:1,borderSkipped:false
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'AQI: '+ctx.raw+' — '+aqiCat(ctx.raw).cat}}},
+      scales:{
+        x:{ticks:{color:'#68645c',font:{size:10},maxTicksLimit:12,autoSkip:true},grid:{display:false}},
+        y:{ticks:{color:'#68645c',font:{size:10}},grid:{color:'rgba(200,180,120,0.06)'},min:0,max:500,
+          afterDrawTickCount:function(){},
+        }
       }
     }
   });
 }
 
-function getInstrumentData(inst) {
-  const data = {
-    'DAQI Dec \'25 Future': { px: 348, mult: 500, type: 'future', strike: null },
-    'DAQI Mar \'26 Future': { px: 287, mult: 500, type: 'future', strike: null },
-    'DAQI Dec \'25 Call — Strike 300': { px: 54, mult: 500, type: 'call', strike: 300 },
-    'DAQI Dec \'25 Call — Strike 350': { px: 18, mult: 500, type: 'call', strike: 350 },
-    'DAQI Dec \'25 Call — Strike 400': { px: 7, mult: 500, type: 'call', strike: 400 },
-    'DAQI Dec \'25 Put — Strike 300': { px: 12, mult: 500, type: 'put', strike: 300 },
-    'DAQI Dec \'25 Put — Strike 350': { px: 24, mult: 500, type: 'put', strike: 350 }
-  };
-  return data[inst] || data['DAQI Dec \'25 Future'];
+function renderSeasonChart() {
+  const monthly = Array(12).fill(0), cnt = Array(12).fill(0);
+  DAILY.forEach(d=>{monthly[d.date.getMonth()]+=d.aqi;cnt[d.date.getMonth()]++;});
+  const avgs = monthly.map((s,i)=>cnt[i]?Math.round(s/cnt[i]):0);
+  const colors = avgs.map(v=>v>300?'#e05a3a':v>200?'#e87a2a':v>100?'#c9a84c':'#4caf72');
+
+  if(seasonChart) seasonChart.destroy();
+  seasonChart = new Chart(document.getElementById('seasonChart'),{
+    type:'bar',
+    data:{labels:MONTHS,datasets:[{data:avgs,backgroundColor:colors,borderRadius:3}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'Avg AQI: '+ctx.raw}}},
+      scales:{
+        x:{ticks:{color:'#68645c',font:{size:11}},grid:{display:false}},
+        y:{ticks:{color:'#68645c',font:{size:10}},grid:{color:'rgba(200,180,120,0.06)'},min:0,max:450}
+      }
+    }
+  });
 }
 
-function updatePayoff() {
-  const inst = document.getElementById('inst').value;
-  const qty = parseInt(document.getElementById('qty').value) || 1;
-  const d = getInstrumentData(inst);
-  document.getElementById('entry-px').value = d.px;
-
-  const notional = d.px * d.mult * qty;
-  document.getElementById('notional-display').textContent =
-    'Notional: ₹' + notional.toLocaleString('en-IN');
-
-  const aqiRange = [];
-  for (let a = 100; a <= 500; a += 20) aqiRange.push(a);
-
-  function pnl(aqi) {
-    let gross = 0;
-    if (d.type === 'future') gross = (aqi - d.px) * d.mult * qty;
-    else if (d.type === 'call') gross = (Math.max(0, aqi - d.strike) - d.px) * d.mult * qty;
-    else if (d.type === 'put') gross = (Math.max(0, d.strike - aqi) - d.px) * d.mult * qty;
-    return dir === 'long' ? gross : -gross;
+function renderVolChart() {
+  const window30 = 30;
+  const vols = [], labels = [];
+  for(let i=window30;i<DAILY.length;i+=7){
+    const slice = DAILY.slice(i-window30,i);
+    const v = calcVol(slice)*100;
+    vols.push(+v.toFixed(1));
+    labels.push(MONTHS[DAILY[i].date.getMonth()].slice(0,3)+'\''+String(DAILY[i].date.getFullYear()).slice(2));
   }
 
-  const pnls = aqiRange.map(pnl);
-  const isDark = matchMedia('(prefers-color-scheme:dark)').matches;
-  const textColor = isDark ? '#a8a69e' : '#5a5a56';
-  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-
-  if (payoffChart) payoffChart.destroy();
-  const ctx = document.getElementById('payoffChart');
-  if (!ctx) return;
-  payoffChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: aqiRange,
-      datasets: [{
-        data: pnls,
-        borderColor: pnls.map(v => v >= 0 ? '#2d7a3a' : '#b83232'),
-        segment: { borderColor: ctx2 => ctx2.p0.parsed.y >= 0 ? '#2d7a3a' : '#b83232' },
-        fill: false, tension: 0, pointRadius: 0
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false },
-        annotation: { annotations: { zero: { type: 'line', yMin: 0, yMax: 0, borderColor: textColor, borderWidth: 1, borderDash: [4,4] } } }
-      },
-      scales: {
-        x: { title: { display: true, text: 'DAQI at Expiry', color: textColor, font: { size: 10, family: 'IBM Plex Mono' } }, ticks: { color: textColor, font: { family: 'IBM Plex Mono', size: 10 }, maxTicksLimit: 8 }, grid: { color: gridColor } },
-        y: { title: { display: true, text: 'P&L (₹)', color: textColor, font: { size: 10, family: 'IBM Plex Mono' } }, ticks: { color: textColor, font: { family: 'IBM Plex Mono', size: 10 }, callback: v => (v >= 0 ? '+' : '') + (v/1000).toFixed(0) + 'k' }, grid: { color: gridColor } }
+  if(volChart) volChart.destroy();
+  volChart = new Chart(document.getElementById('volChart'),{
+    type:'line',
+    data:{labels,datasets:[{
+      data:vols,borderColor:'#c9a84c',backgroundColor:'rgba(201,168,76,0.06)',
+      fill:true,tension:0.4,pointRadius:0,borderWidth:1.5
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw+'% annualised vol'}}},
+      scales:{
+        x:{ticks:{color:'#68645c',font:{size:10},maxTicksLimit:12},grid:{display:false}},
+        y:{ticks:{color:'#68645c',font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(200,180,120,0.06)'}}
       }
     }
   });
+}
 
-  const scenarios = [100,150,200,250,300,350,400,450,500].map(aqi => {
-    const p = pnl(aqi);
-    const cost = Math.abs(d.px * d.mult * qty);
-    const ret = cost > 0 ? (p / cost * 100).toFixed(1) : '—';
-    const {cat} = aqiCat(aqi);
-    return `<tr>
-      <td style="font-family:var(--fm);font-weight:500">${aqi}</td>
-      <td><span class="badge" style="background:${aqiCat(aqi).col}22;color:${aqiCat(aqi).col}">${cat}</span></td>
-      <td class="pnl ${p>=0?'pos':'neg'}" style="font-family:var(--fm)">${p>=0?'+':''}₹${Math.abs(p).toLocaleString('en-IN')}</td>
-      <td class="pnl ${p>=0?'pos':'neg'}" style="font-family:var(--fm)">${p>=0?'+':''}${ret}%</td>
-    </tr>`;
+// ─── FUTURES TAB ──────────────────────────────────────────
+function renderFuturesMetrics() {
+  const near = FUTURES[0], far = FUTURES[11];
+  const contango = near.price < far.price;
+  document.getElementById('fut-metrics').innerHTML = `
+    <div class="metric"><div class="lbl">Spot</div><div class="val gold">${SPOT}</div><div class="sub">Current DAQI</div></div>
+    <div class="metric"><div class="lbl">Near Future</div><div class="val">${near.price}</div><div class="sub">${near.label}</div></div>
+    <div class="metric"><div class="lbl">Far Future</div><div class="val">${far.price}</div><div class="sub">${far.label}</div></div>
+    <div class="metric"><div class="lbl">Curve Shape</div><div class="val ${contango?'up':'dn'}">${contango?'Contango':'Backwdtn'}</div><div class="sub">Near vs far</div></div>
+    <div class="metric"><div class="lbl">3Y HVol</div><div class="val gold">${(HV3Y*100).toFixed(1)}%</div><div class="sub">Annualised</div></div>
+  `;
+}
+
+function renderFwdChart() {
+  const labels = ['Spot',...FUTURES.map(f=>f.label)];
+  const data = [SPOT,...FUTURES.map(f=>f.price)];
+  const colors = data.map((v,i)=>i===0?'#c9a84c':v>SPOT?'#e05a3a':'#4caf72');
+
+  if(fwdChart) fwdChart.destroy();
+  fwdChart = new Chart(document.getElementById('fwdChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {type:'line',data,borderColor:'#c9a84c',backgroundColor:'rgba(201,168,76,0.08)',fill:true,tension:0.3,pointRadius:4,pointBackgroundColor:colors,borderWidth:2,order:1},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#68645c',font:{size:11}},grid:{display:false}},
+        y:{ticks:{color:'#68645c',font:{size:10}},grid:{color:'rgba(200,180,120,0.06)'},min:Math.min(...data)-50,max:Math.max(...data)+50}
+      }
+    }
   });
-  document.getElementById('scenario-body').innerHTML = scenarios.join('');
-
-  const notes = {
-    'future': `${dir === 'long' ? 'Long' : 'Short'} future: profit if DAQI ${dir === 'long' ? 'rises above' : 'falls below'} ${d.px}. Each point = ₹500.`,
-    'call': `${dir === 'long' ? 'Long call' : 'Short call'}: strike ${d.strike}, premium ₹${d.px}/pt. ${dir==='long'?'Profit if DAQI > '+(d.strike+d.px):'Profit up to premium of ₹'+(d.px*500*qty).toLocaleString('en-IN')+' if DAQI ≤ '+d.strike}.`,
-    'put': `${dir === 'long' ? 'Long put' : 'Short put'}: strike ${d.strike}, premium ₹${d.px}/pt. ${dir==='long'?'Profit if DAQI < '+(d.strike-d.px):'Capped profit if DAQI ≥ '+d.strike}.`
-  };
-  document.getElementById('payoff-note').textContent = notes[d.type];
 }
 
-function placeOrder() {
-  const inst = document.getElementById('inst').value;
-  const qty = parseInt(document.getElementById('qty').value) || 1;
-  const d = getInstrumentData(inst);
-  const pos = { inst, dir, qty, entryPx: d.px, type: d.type, strike: d.strike, mult: d.mult, id: Date.now() };
-  positions.push(pos);
-  const log = { time: new Date().toLocaleTimeString(), inst, dir, qty, px: d.px };
-  tradeLog.unshift(log);
-  renderPositions();
-  showPanel('positions', document.querySelectorAll('.tab')[2]);
+function renderFuturesTable() {
+  const rows = FUTURES.map(f => {
+    const chg = f.price - SPOT;
+    const book = genFuturesBook(f.price);
+    const bid = book.bids[0]?.price, ask = book.asks[0]?.price;
+    return `<tr>
+      <td>${f.label}</td>
+      <td class="num" style="color:var(--gold2)">${f.price}</td>
+      <td class="${chg>=0?'up':'dn'}">${chg>=0?'+':''}${chg}</td>
+      <td class="num">${(f.T*12).toFixed(0)}m</td>
+      <td class="num" style="color:var(--green)">${bid||'—'}</td>
+      <td class="num" style="color:var(--red)">${ask||'—'}</td>
+      <td class="num">${((ask-bid)/(f.price)*10000).toFixed(0)} bps</td>
+      <td class="num">${(f.vol*100).toFixed(1)}%</td>
+      <td class="num">${(f.price*MULT).toLocaleString('en-IN')}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('fut-table').innerHTML = `
+    <thead><tr><th>Expiry</th><th style="text-align:right">Price</th><th style="text-align:right">vs Spot</th><th style="text-align:right">Tenor</th><th style="text-align:right">Bid</th><th style="text-align:right">Ask</th><th style="text-align:right">Spread</th><th style="text-align:right">Vol</th><th style="text-align:right">Notional (₹)</th></tr></thead>
+    <tbody>${rows}</tbody>`;
 }
 
-function closePosition(id) {
-  positions = positions.filter(p => p.id !== id);
-  renderPositions();
+// ─── OPTION CHAIN ─────────────────────────────────────────
+function populateChainExpiry() {
+  const sel = document.getElementById('chain-expiry');
+  sel.innerHTML = FUTURES.map((f,i)=>`<option value="${i}">${f.label}</option>`).join('');
+}
+
+function renderChain() {
+  const idx = parseInt(document.getElementById('chain-expiry').value)||0;
+  const typeFilter = document.getElementById('chain-type').value;
+  const fut = FUTURES[idx];
+  const F = fut.price, T = fut.T, vol = fut.vol;
+  const strikes = getStrikes(F);
+
+  document.getElementById('chain-spot-ref').textContent = F;
+  document.getElementById('chain-vol-ref').textContent = (vol*100).toFixed(1)+'%';
+
+  const rows = strikes.map(K => {
+    const callFV = black76Call(F,K,T,vol);
+    const putFV = black76Put(F,K,T,vol);
+    const cDelta = callDelta(F,K,T,vol);
+    const pDelta = putDelta(F,K,T,vol);
+    const skew = 1 + Math.abs(K-F)/F*0.3;
+    const cIV = (vol*skew*100).toFixed(0);
+    const pIV = (vol*skew*100+2).toFixed(0);
+    const cBid = Math.max(0.1,callFV-callFV*0.04).toFixed(1);
+    const cAsk = (callFV+callFV*0.04).toFixed(1);
+    const pBid = Math.max(0.1,putFV-putFV*0.04).toFixed(1);
+    const pAsk = (putFV+putFV*0.04).toFixed(1);
+    const itm = K<F?'itm':'otm';
+    return `<div class="chain-row ${itm}">
+      <div class="call-side" style="text-align:right">${cBid}</div>
+      <div class="call-side" style="text-align:right">${cAsk}</div>
+      <div class="call-side" style="text-align:right">${cIV}%</div>
+      <div class="call-side" style="text-align:right">${cDelta.toFixed(2)}</div>
+      <div class="strike-cell" style="text-align:center">${K}</div>
+      <div class="put-side">${Math.abs(pDelta).toFixed(2)}</div>
+      <div class="put-side">${pIV}%</div>
+      <div class="put-side">${pBid}</div>
+      <div class="put-side">${pAsk}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('chain-body').innerHTML = rows;
+}
+
+// ─── ORDER BOOK ───────────────────────────────────────────
+function populateOBInstruments() {
+  const sel = document.getElementById('ob-instrument');
+  let opts = FUTURES.map((f,i)=>`<option value="fut-${i}">Future ${f.label}</option>`).join('');
+  const idx = 0;
+  const F = FUTURES[idx].price, T = FUTURES[idx].T, vol = FUTURES[idx].vol;
+  const strikes = getStrikes(F).slice(3,8);
+  strikes.forEach(K => {
+    opts += `<option value="call-${idx}-${K}">Call ${FUTURES[idx].label} K=${K}</option>`;
+    opts += `<option value="put-${idx}-${K}">Put ${FUTURES[idx].label} K=${K}</option>`;
+  });
+  sel.innerHTML = opts;
+}
+
+function renderOrderBook() {
+  const val = document.getElementById('ob-instrument').value;
+  const parts = val.split('-');
+  let book;
+  if(parts[0]==='fut'){
+    const f = FUTURES[parseInt(parts[1])];
+    book = genFuturesBook(f.price);
+  } else {
+    const idx=parseInt(parts[1]),K=parseInt(parts[2]),isCall=parts[0]==='call';
+    const f = FUTURES[idx];
+    book = genMarketBook(f.price,K,f.T,f.vol,isCall);
+  }
+
+  function renderSide(orders,isAsk) {
+    return orders.slice(0,12).map(o=>{
+      const total = orders.reduce((a,b)=>a+b.qty,0);
+      const pct = (o.qty/total*100).toFixed(0);
+      return `<div class="ob-row-inner">
+        <div class="ob-bar" style="width:${pct}%;background:${isAsk?'var(--red)':'var(--green)'}"></div>
+        <div class="ob-row">
+          <span style="color:var(--ink2)">${o.qty}</span>
+          <span class="${isAsk?'ob-ask':'ob-bid'}" style="font-weight:700">${o.price}</span>
+          <span style="color:var(--ink3)">${(o.price*o.qty*MULT).toLocaleString('en-IN').slice(0,-3)}k</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('ob-asks').innerHTML = renderSide(book.asks,true);
+  document.getElementById('ob-bids').innerHTML = renderSide(book.bids,false);
+  document.getElementById('ob-mid').innerHTML = `<div class="ob-mid">Mid: ${((book.asks[0]?.price+book.bids[0]?.price)/2).toFixed(1)} &nbsp;|&nbsp; Spread: ${(book.asks[0]?.price-book.bids[0]?.price).toFixed(1)}</div>`;
+
+  // Depth chart
+  const allPrices = [...book.bids.map(b=>b.price),...book.asks.map(a=>a.price)].sort((a,b)=>a-b);
+  let cumBid=0, cumAsk=0;
+  const bidCum=book.bids.slice().reverse().map(b=>{cumBid+=b.qty;return{x:b.price,y:cumBid}});
+  const askCum=book.asks.map(a=>{cumAsk+=a.qty;return{x:a.price,y:cumAsk}});
+  if(depthChart) depthChart.destroy();
+  depthChart = new Chart(document.getElementById('depthChart'),{
+    type:'line',
+    data:{datasets:[
+      {label:'Bids',data:bidCum,borderColor:'#4caf72',backgroundColor:'rgba(76,175,114,0.1)',fill:true,stepped:true,pointRadius:0},
+      {label:'Asks',data:askCum,borderColor:'#e05a3a',backgroundColor:'rgba(224,90,58,0.1)',fill:true,stepped:true,pointRadius:0}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{type:'linear',ticks:{color:'#68645c',font:{size:10}},grid:{color:'rgba(200,180,120,0.05)'}},
+        y:{ticks:{color:'#68645c',font:{size:10}},grid:{color:'rgba(200,180,120,0.05)'}}
+      }
+    }
+  });
+}
+
+// ─── ORDER FORM ───────────────────────────────────────────
+function populateOrderForm() {
+  const expSel = document.getElementById('ord-expiry');
+  expSel.innerHTML = FUTURES.map((f,i)=>`<option value="${i}">${f.label}</option>`).join('');
+  updateStrikeDropdown();
+  updateOrderForm();
+}
+
+function updateStrikeDropdown() {
+  const idx = parseInt(document.getElementById('ord-expiry').value)||0;
+  const type = document.getElementById('ord-type').value;
+  const stRow = document.getElementById('strike-row');
+  if(type==='Future'){stRow.style.display='none';return;}
+  stRow.style.display='block';
+  const F = FUTURES[idx].price;
+  const strikes = getStrikes(F);
+  document.getElementById('ord-strike').innerHTML = strikes.map(K=>`<option value="${K}">${K}</option>`).join('');
+  const atm = strikes.reduce((a,b)=>Math.abs(b-F)<Math.abs(a-F)?b:a,strikes[0]);
+  document.getElementById('ord-strike').value = atm;
+}
+
+document.getElementById('ord-type').addEventListener('change',updateStrikeDropdown);
+document.getElementById('ord-expiry').addEventListener('change',updateStrikeDropdown);
+
+function updateOrderForm() {
+  const idx = parseInt(document.getElementById('ord-expiry').value)||0;
+  const type = document.getElementById('ord-type').value;
+  const qty = parseInt(document.getElementById('ord-qty').value)||1;
+  const f = FUTURES[idx];
+  let fv, delta, iv;
+
+  if(type==='Future'){
+    fv = f.price; delta = 1; iv = f.vol*100;
+  } else {
+    const K = parseInt(document.getElementById('ord-strike').value)||f.price;
+    const isCall = type==='Call';
+    fv = isCall ? black76Call(f.price,K,f.T,f.vol) : black76Put(f.price,K,f.T,f.vol);
+    delta = isCall ? callDelta(f.price,K,f.T,f.vol) : putDelta(f.price,K,f.T,f.vol);
+    iv = f.vol*100;
+    // skew adjustment
+    iv *= 1 + Math.abs(K-f.price)/f.price*0.3;
+  }
+
+  const priceInput = document.getElementById('ord-price');
+  if(!priceInput.dataset.userEdited) priceInput.value = fv.toFixed(1);
+
+  const limitPx = parseFloat(priceInput.value)||fv;
+  const notional = type==='Future' ? limitPx*MULT*qty : limitPx*MULT*qty;
+  const margin = notional * MARGIN_RATE;
+
+  document.getElementById('calc-fv').textContent = fv.toFixed(2);
+  document.getElementById('calc-iv').textContent = iv.toFixed(1)+'%';
+  document.getElementById('calc-delta').textContent = delta.toFixed(3);
+  document.getElementById('calc-notional').textContent = '₹'+Math.round(notional).toLocaleString('en-IN');
+  document.getElementById('calc-margin').textContent = '₹'+Math.round(margin).toLocaleString('en-IN');
+
+  const isBuy = dir2==='long';
+  document.getElementById('submit-btn').textContent = (isBuy?'Buy ':'Sell ')+(type==='Future'?'Future':type)+' — '+FUTURES[idx].label;
+  document.getElementById('submit-btn').className = 'btn-submit'+(isBuy?'':' sell-btn');
+}
+
+document.getElementById('ord-price').addEventListener('input',function(){
+  this.dataset.userEdited='1';updateOrderForm();
+});
+
+function setDir2(d) {
+  dir2=d;
+  document.getElementById('btn-buy').className='seg button'+(d==='long'?' on buy':'');
+  document.getElementById('btn-sell').className='seg button'+(d==='short'?' on sell':'');
+  updateOrderForm();
+}
+// Fix seg buttons
+document.getElementById('btn-buy').className='on buy';
+document.getElementById('btn-sell').className='';
+
+// ─── ORDER SUBMISSION + FILL LOGIC ───────────────────────
+function submitOrder() {
+  const idx = parseInt(document.getElementById('ord-expiry').value)||0;
+  const type = document.getElementById('ord-type').value;
+  const qty = parseInt(document.getElementById('ord-qty').value)||1;
+  const f = FUTURES[idx];
+  const limitPx = parseFloat(document.getElementById('ord-price').value);
+
+  let K = null, isCall = null, fv;
+  if(type==='Future'){
+    fv = f.price;
+  } else {
+    K = parseInt(document.getElementById('ord-strike').value);
+    isCall = type==='Call';
+    fv = isCall ? black76Call(f.price,K,f.T,f.vol) : black76Put(f.price,K,f.T,f.vol);
+  }
+
+  // Fill logic: rational market makers fill at limit if within market spread
+  const book = type==='Future' ? genFuturesBook(f.price) : genMarketBook(f.price,K||f.price,f.T,f.vol,isCall);
+  const bestAsk = book.asks[0]?.price;
+  const bestBid = book.bids[0]?.price;
+
+  let filled = false, fillPx;
+  if(dir2==='long' && limitPx >= bestAsk) { filled=true; fillPx=bestAsk; }
+  else if(dir2==='short' && limitPx <= bestBid) { filled=true; fillPx=bestBid; }
+  else if(dir2==='long' && limitPx >= fv*0.95) { filled=true; fillPx=limitPx; }
+  else if(dir2==='short' && limitPx <= fv*1.05) { filled=true; fillPx=limitPx; }
+
+  if(filled) {
+    const inst = type==='Future'
+      ? `DAQI Future ${f.label}`
+      : `DAQI ${type} ${f.label} K${K}`;
+    const pos = {
+      id: Date.now(),
+      inst, type, dir: dir2, qty,
+      entryPx: fillPx, fv,
+      futIdx: idx, K, isCall,
+      mult: MULT
+    };
+    positions.push(pos);
+    fills.unshift({time:new Date().toLocaleTimeString(),inst,dir:dir2,qty,px:fillPx});
+    showToast(`Filled: ${dir2.toUpperCase()} ${qty}x ${inst} @ ${fillPx}`);
+    renderTradeLog();
+    renderPositions();
+    updateHeader();
+  } else {
+    showToast(`Order rejected — price too far from market (fair value: ${fv.toFixed(1)})`, true);
+  }
+  document.getElementById('ord-price').dataset.userEdited='';
+}
+
+// ─── POSITIONS ────────────────────────────────────────────
+function calcOpenPnl() {
+  return positions.reduce((total,p)=>{
+    const current = getCurrentPrice(p);
+    const rawPnl = (current - p.entryPx) * p.mult * p.qty;
+    return total + (p.dir==='long' ? rawPnl : -rawPnl);
+  },0);
+}
+
+function getCurrentPrice(p) {
+  if(p.type==='Future') return FUTURES[p.futIdx].price;
+  const f = FUTURES[p.futIdx];
+  return p.isCall ? black76Call(f.price,p.K,f.T,f.vol) : black76Put(f.price,p.K,f.T,f.vol);
 }
 
 function renderPositions() {
-  const spot = parseInt(document.getElementById('aqi-slider').value) || 312;
-  let totalPnl = 0;
-  let totalMargin = 0;
+  const openPnl = calcOpenPnl();
+  const total = openPnl + realisedPnl;
+  document.getElementById('pos-total-pnl').textContent = (total>=0?'+':'')+'₹'+Math.abs(Math.round(total)).toLocaleString('en-IN');
+  document.getElementById('pos-total-pnl').className = 'val '+(total>=0?'up':'dn');
+  document.getElementById('pos-realised').textContent = (realisedPnl>=0?'+':'')+'₹'+Math.abs(Math.round(realisedPnl)).toLocaleString('en-IN');
+  document.getElementById('pos-realised').className = 'val '+(realisedPnl>=0?'up':'dn');
+  document.getElementById('pos-count').textContent = positions.length;
+  const margin = positions.reduce((t,p)=>t+p.entryPx*p.mult*p.qty*MARGIN_RATE,0);
+  document.getElementById('pos-margin').textContent = '₹'+Math.round(margin).toLocaleString('en-IN');
+  document.getElementById('pos-wr').textContent = closedTrades>0 ? (winTrades/closedTrades*100).toFixed(0)+'%' : '—';
 
-  if (positions.length === 0) {
-    document.getElementById('pos-content').innerHTML = '<div class="empty-state">No open positions.</div>';
-  } else {
-    const rows = positions.map(p => {
-      let unrealised = 0;
-      if (p.type === 'future') unrealised = (spot - p.entryPx) * p.mult * p.qty;
-      else if (p.type === 'call') unrealised = (Math.max(0, spot - p.strike) - p.entryPx) * p.mult * p.qty;
-      else if (p.type === 'put') unrealised = (Math.max(0, p.strike - spot) - p.entryPx) * p.mult * p.qty;
-      if (p.dir === 'short') unrealised = -unrealised;
-      totalPnl += unrealised;
-      const margin = p.entryPx * p.mult * p.qty * 0.15;
-      totalMargin += margin;
-      return `<tr>
-        <td style="font-size:12px">${p.inst}</td>
-        <td><span class="badge ${p.dir}">${p.dir}</span></td>
-        <td style="font-family:var(--fm)">${p.qty}</td>
-        <td style="font-family:var(--fm)">${p.entryPx}</td>
-        <td style="font-family:var(--fm)">${spot}</td>
-        <td class="pnl ${unrealised>=0?'pos':'neg'}" style="font-family:var(--fm)">${unrealised>=0?'+':''}₹${Math.abs(Math.round(unrealised)).toLocaleString('en-IN')}</td>
-        <td><button onclick="closePosition(${p.id})" style="background:none;border:0.5px solid var(--border);color:var(--ink2);border-radius:5px;padding:3px 8px;cursor:pointer;font-size:11px">Close</button></td>
-      </tr>`;
-    });
-    document.getElementById('pos-content').innerHTML = `<table class="pos-table"><thead><tr><th>Instrument</th><th>Dir</th><th>Qty</th><th>Entry</th><th>DAQI Now</th><th>Unreal P&L</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+  if(!positions.length){
+    document.getElementById('positions-list').innerHTML='<div class="empty">No open positions.</div>';
+    return;
   }
-
-  document.getElementById('total-pnl').textContent = (totalPnl >= 0 ? '+' : '') + '₹' + Math.abs(Math.round(totalPnl)).toLocaleString('en-IN');
-  document.getElementById('total-pnl').className = 'val ' + (totalPnl >= 0 ? 'ok' : '');
-  document.getElementById('open-count').textContent = positions.length;
-  document.getElementById('margin-used').textContent = '₹' + Math.round(totalMargin).toLocaleString('en-IN');
-
-  if (tradeLog.length === 0) {
-    document.getElementById('log-content').innerHTML = '<div class="empty-state">No trades yet.</div>';
-  } else {
-    const logRows = tradeLog.map(l => `<tr>
-      <td style="font-family:var(--fm);color:var(--ink3)">${l.time}</td>
-      <td style="font-size:12px">${l.inst}</td>
-      <td><span class="badge ${l.dir}">${l.dir}</span></td>
-      <td style="font-family:var(--fm)">${l.qty} × ₹${l.px}</td>
-    </tr>`).join('');
-    document.getElementById('log-content').innerHTML = `<table class="pos-table"><thead><tr><th>Time</th><th>Instrument</th><th>Dir</th><th>Details</th></tr></thead><tbody>${logRows}</tbody></table>`;
-  }
+  document.getElementById('positions-list').innerHTML = positions.map(p=>{
+    const cur = getCurrentPrice(p);
+    const rawPnl = (cur - p.entryPx)*p.mult*p.qty;
+    const pnl = p.dir==='long' ? rawPnl : -rawPnl;
+    const pnlPct = (pnl/(p.entryPx*p.mult*p.qty)*100).toFixed(1);
+    return `<div class="pos-card">
+      <div class="pos-header">
+        <div>
+          <span class="badge ${p.dir}">${p.dir.toUpperCase()}</span>
+          <span class="pos-inst" style="margin-left:8px">${p.inst}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="pos-pnl ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}₹${Math.abs(Math.round(pnl)).toLocaleString('en-IN')} (${pnlPct}%)</span>
+          <button class="close-btn" onclick="closePos(${p.id})">Close</button>
+        </div>
+      </div>
+      <div class="pos-details">
+        <div class="pos-detail"><div class="k">Qty</div><div class="v">${p.qty}</div></div>
+        <div class="pos-detail"><div class="k">Entry</div><div class="v">${p.entryPx.toFixed(1)}</div></div>
+        <div class="pos-detail"><div class="k">Current</div><div class="v">${cur.toFixed(1)}</div></div>
+        <div class="pos-detail"><div class="k">Margin</div><div class="v">₹${Math.round(p.entryPx*p.mult*p.qty*MARGIN_RATE).toLocaleString('en-IN')}</div></div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-document.addEventListener('DOMContentLoaded', () => {});
-setTimeout(() => {
-  initCurveChart();
-  buildChain();
-  updatePayoff();
+function closePos(id) {
+  const pos = positions.find(p=>p.id===id);
+  if(!pos) return;
+  const cur = getCurrentPrice(pos);
+  const rawPnl = (cur-pos.entryPx)*pos.mult*pos.qty;
+  const pnl = pos.dir==='long'?rawPnl:-rawPnl;
+  realisedPnl += pnl;
+  closedTrades++;
+  if(pnl>0) winTrades++;
+  positions = positions.filter(p=>p.id!==id);
+  fills.unshift({time:new Date().toLocaleTimeString(),inst:pos.inst,dir:'CLOSED',qty:pos.qty,px:cur,pnl});
+  renderTradeLog();
   renderPositions();
-}, 100);
+  updateHeader();
+  showToast(`Closed ${pos.inst} — P&L: ${pnl>=0?'+':''}₹${Math.abs(Math.round(pnl)).toLocaleString('en-IN')}`);
+}
+
+// ─── TRADE LOG ────────────────────────────────────────────
+function renderTradeLog() {
+  if(!fills.length){
+    document.getElementById('trade-log').innerHTML='<div class="empty" style="padding:16px">No fills yet</div>';
+    return;
+  }
+  document.getElementById('trade-log').innerHTML = fills.slice(0,8).map(f=>`
+    <div class="trade-log-item">
+      <div>
+        <div class="tl-inst">${f.inst}</div>
+        <div class="tl-detail">${f.dir.toUpperCase()} ${f.qty} @ ${typeof f.px==='number'?f.px.toFixed(1):f.px} · ${f.time}</div>
+      </div>
+      ${f.pnl!==undefined?`<div class="tl-pnl" style="color:${f.pnl>=0?'var(--green)':'var(--red)'}">${f.pnl>=0?'+':''}₹${Math.abs(Math.round(f.pnl)).toLocaleString('en-IN')}</div>`:''}
+    </div>`).join('');
+}
+
+// ─── TOAST ────────────────────────────────────────────────
+function showToast(msg, isError=false) {
+  const t = document.getElementById('fill-toast');
+  t.textContent = msg;
+  t.style.borderColor = isError?'var(--red)':'var(--green)';
+  t.style.color = isError?'var(--red)':'var(--green)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ─── TAB ROUTING ─────────────────────────────────────────
+function showTab(id, el) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  el.classList.add('active');
+  if(id==='orderbook') renderOrderBook();
+  if(id==='positions') renderPositions();
+  if(id==='options') renderChain();
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+function init() {
+  updateHeader();
+  renderHistoricalMetrics();
+  renderHistChart();
+  renderSeasonChart();
+  renderVolChart();
+  renderFuturesMetrics();
+  renderFwdChart();
+  renderFuturesTable();
+  populateChainExpiry();
+  renderChain();
+  populateOBInstruments();
+  populateOrderForm();
+}
+
+setTimeout(init, 150);
+
+// Live price flicker simulation
+setInterval(()=>{
+  FUTURES.forEach(f=>{
+    f.price += Math.round((Math.random()-0.5)*3);
+    f.price = Math.max(50,f.price);
+  });
+  updateHeader();
+  renderPositions();
+}, 4000);
 </script>
+</body>
+</html>
