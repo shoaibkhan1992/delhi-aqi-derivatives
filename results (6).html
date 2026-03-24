@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AQI-X Delhi Exchange — Results</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fafaf8;--bg2:#f4f3ef;--bg3:#eceae3;
+  --ink:#1a1a16;--ink2:#4a4a44;--ink3:#8a8a82;--ink4:#c8c6be;
+  --gold:#b5872a;--gold-l:#f5e9d0;
+  --red:#c03020;--red-l:#fde8e4;
+  --green:#1e6e3a;--green-l:#e2f5ea;
+  --blue:#1a4a8a;--blue-l:#e4eef8;
+  --border:#dddbd2;--border2:#c8c6be;
+  --shadow:0 1px 3px rgba(0,0,0,.08);
+  --ff:'DM Sans',sans-serif;--fd:'DM Serif Display',serif;--fm:'DM Mono',monospace;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--ink);font-family:var(--ff);line-height:1.6}
+.header{background:#fff;border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.logo-name{font-family:var(--fd);font-size:22px;color:var(--ink)}
+.logo-tag{font-size:11px;color:var(--gold);font-family:var(--fm);background:var(--gold-l);padding:2px 8px;border-radius:3px;margin-left:10px}
+.nav{display:flex;gap:4px}
+.nav a{padding:8px 14px;font-size:13px;color:var(--ink2);text-decoration:none;border-radius:6px}
+.nav a:hover{background:var(--bg2)}.nav a.active{background:var(--bg3);color:var(--ink);font-weight:500}
+.page{max-width:1120px;margin:0 auto;padding:32px 24px}
+.page-title{font-family:var(--fd);font-size:32px;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--ink3);margin-bottom:28px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:18px;box-shadow:var(--shadow)}
+.card-title{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;font-family:var(--fm);font-weight:500;margin-bottom:14px}
+
+/* CONTROLS */
+.ctrl-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.ctrl-item label{display:block;font-size:10px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-family:var(--fm)}
+.ctrl-val{font-size:18px;font-weight:700;color:var(--ink);font-family:var(--fm);margin-top:4px}
+.ctrl-sub{font-size:10px;color:var(--ink3);margin-top:2px}
+input[type=range]{width:100%;accent-color:var(--blue);height:4px}
+input[type=number],select{width:100%;background:#fff;border:1px solid var(--border2);color:var(--ink);font-family:var(--fm);font-size:13px;padding:8px 10px;border-radius:6px}
+.spot-display{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.spot-display .sv{font-size:28px;font-weight:700;font-family:var(--fm);color:var(--ink)}
+.spot-display .sk{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;font-family:var(--fm)}
+.spot-display .sc{font-size:11px;padding:3px 10px;border-radius:4px;font-weight:600}
+
+/* RUN BUTTON */
+.run-btn{width:100%;padding:14px;background:var(--blue);color:#fff;font-family:var(--fd);font-size:17px;border:none;border-radius:10px;cursor:pointer;transition:.15s}
+.run-btn:hover{background:#243aaa;transform:translateY(-1px);box-shadow:0 4px 20px rgba(26,74,138,.25)}
+.run-btn:disabled{background:var(--ink3);cursor:not-allowed;transform:none}
+
+/* LOADER */
+.loader{display:none;text-align:center;padding:48px;color:var(--ink3);font-size:13px}
+.loader.show{display:block}
+.spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* METRICS */
+.metrics-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:18px}
+.mc{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;box-shadow:var(--shadow)}
+.mc .ml{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.7px;font-family:var(--fm)}
+.mc .mv{font-size:19px;font-weight:700;margin-top:3px;font-family:var(--fm);color:var(--ink)}
+.mc .mv.up{color:var(--green)}.mc .mv.dn{color:var(--red)}.mc .mv.gold{color:var(--gold)}
+.mc .ms{font-size:10px;color:var(--ink3);margin-top:2px}
+
+/* HEDGING PAYOFF HERO */
+.hedge-hero{background:linear-gradient(135deg,#0f2a5a 0%,#1a4a8a 60%,#2060aa 100%);border-radius:14px;padding:28px;margin-bottom:18px;color:#fff}
+.hedge-hero .hh-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;opacity:.65;font-family:var(--fm);margin-bottom:6px}
+.hedge-hero .hh-name{font-family:var(--fd);font-size:24px;margin-bottom:2px}
+.hedge-hero .hh-cat{font-size:12px;opacity:.7;margin-bottom:20px}
+.hedge-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.hs{background:rgba(255,255,255,.1);border-radius:8px;padding:14px}
+.hs .hsk{font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.5px;font-family:var(--fm);margin-bottom:4px}
+.hs .hsv{font-size:20px;font-weight:700;font-family:var(--fm)}
+.hs .hsv.pos{color:#6de09a}.hs .hsv.neg{color:#f08080}.hs .hsv.gold{color:#f5d070}
+.hs .hss{font-size:10px;opacity:.6;margin-top:3px}
+
+/* AVOIDED LOSS BANNER */
+.avoided-banner{border-radius:10px;padding:18px 22px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.avoided-banner.positive{background:var(--green-l);border:1px solid #a8d8b5}
+.avoided-banner.negative{background:var(--red-l);border:1px solid #e8b0a8}
+.avoided-banner.neutral{background:var(--bg2);border:1px solid var(--border)}
+.ab-left h3{font-family:var(--fd);font-size:18px;margin-bottom:4px}
+.ab-left p{font-size:12px;color:var(--ink2);line-height:1.6;max-width:560px}
+.ab-right{text-align:right;min-width:140px}
+.ab-right .abv{font-size:26px;font-weight:700;font-family:var(--fm)}
+.ab-right .abk{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;font-family:var(--fm)}
+
+/* TWO-COL */
+.two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:18px}
+
+/* SCENARIO CARDS */
+.scen-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.scen-card{border-radius:10px;padding:16px;border:1px solid var(--border)}
+.scen-card.bull{background:#f0faf4;border-color:#a8d8b5}
+.scen-card.base{background:#f8f6f0;border-color:var(--border)}
+.scen-card.bear{background:#fef2f0;border-color:#e8b0a8}
+.scen-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-family:var(--fm)}
+.bull .scen-label{color:var(--green)}.base .scen-label{color:var(--gold)}.bear .scen-label{color:var(--red)}
+.scen-aqi{font-family:var(--fd);font-size:26px;font-weight:700;margin-bottom:6px}
+.scen-row{font-size:11px;font-family:var(--fm);padding:3px 0;border-bottom:1px solid rgba(0,0,0,.06);display:flex;justify-content:space-between}
+.scen-row:last-child{border-bottom:none}
+
+/* TABLES */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:8px 12px;font-size:10px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);font-family:var(--fm)}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--ink2)}
+.tbl td.num{text-align:right;font-family:var(--fm);color:var(--ink)}
+.tbl td.up{text-align:right;color:var(--green);font-family:var(--fm);font-weight:600}
+.tbl td.dn{text-align:right;color:var(--red);font-family:var(--fm);font-weight:600}
+.tbl tr:hover td{background:var(--bg)}.tbl tr:last-child td{border-bottom:none}
+
+/* CAT SUMMARY */
+.cat-grid-r{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.cat-card-r{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;box-shadow:var(--shadow)}
+.cc-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cc-icon{font-size:18px}.cc-name{font-size:12px;font-weight:600;color:var(--ink)}.cc-count{font-size:10px;color:var(--ink3);font-family:var(--fm)}
+.cc-pnl{font-size:16px;font-weight:700;font-family:var(--fm);margin-bottom:2px}
+.cc-pnl.pos{color:var(--green)}.cc-pnl.neg{color:var(--red)}
+.cc-avoided{font-size:11px;color:var(--ink3);margin-bottom:6px}
+.cc-avoided span{color:var(--green);font-weight:600}
+.progress-bar{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .8s ease}
+
+/* DIST + PATH CHARTS */
+.path-wrap{position:relative;height:260px}
+.dist-wrap{position:relative;height:260px}
+
+/* NO DATA */
+.no-data{text-align:center;padding:56px 0;color:var(--ink3)}
+.nd-icon{font-size:48px;margin-bottom:12px}
+.no-data h3{font-size:16px;color:var(--ink2);font-weight:500;margin-bottom:8px}
+.no-data p{font-size:13px;max-width:420px;margin:0 auto 8px}
+.no-data a{color:var(--blue);text-decoration:none;font-weight:500}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;border-radius:8px;padding:12px 18px;font-size:12px;z-index:999;opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+@media(max-width:800px){
+  .metrics-row{grid-template-columns:repeat(3,1fr)}
+  .two-col{grid-template-columns:1fr}
+  .scen-grid{grid-template-columns:1fr}
+  .cat-grid-r{grid-template-columns:repeat(2,1fr)}
+  .hedge-stats{grid-template-columns:repeat(2,1fr)}
+  .ctrl-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <span class="logo-name">AQI-X Delhi Exchange</span>
+    <span class="logo-tag">Results</span>
+  </div>
+  <div class="nav">
+    <a href="index.html">← Trading Floor</a>
+    <a href="results.html" class="active">Results</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-title">Results — Potential Future Payoff</div>
+  <div class="page-sub">10,000 paths pre-computed on load · Seasonal Brownian motion · Calibrated to 3Y CPCB volatility · Starting AQI-X Delhi fixed at Feb 2026 = 262</div>
+
+  <!-- PRECOMPUTE PROGRESS (shown on load) -->
+  <div class="card" id="precompute-card">
+    <div class="card-title">Generating 10,000 Paths</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+      <div style="flex:1;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden">
+        <div id="precompute-bar" style="height:100%;width:0%;background:var(--blue);border-radius:4px;transition:width .15s"></div>
+      </div>
+      <div id="precompute-pct" style="font-family:var(--fm);font-size:13px;font-weight:600;color:var(--blue);min-width:36px">0%</div>
+    </div>
+    <div id="precompute-msg" style="font-size:11px;color:var(--ink3);font-family:var(--fm)">Pre-computing paths in background — payoff calculation will be instant once complete…</div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="card" id="controls-card" style="display:none">
+    <div class="card-title">Payoff Parameters</div>
+    <div class="ctrl-grid">
+      <div class="ctrl-item">
+        <label>Starting AQI-X Delhi (fixed)</label>
+        <div class="spot-display">
+          <div><div class="sk">Feb 2026 Spot</div><div class="sv">262</div></div>
+          <div>
+            <div class="sc" style="background:var(--red-l);color:var(--red)">Poor</div>
+            <div style="font-size:10px;color:var(--ink3);margin-top:4px;font-family:var(--fm)">GRAP Stage II</div>
+          </div>
+        </div>
+      </div>
+      <div class="ctrl-item">
+        <label>Paths used for analysis</label>
+        <input type="range" id="p-nsim" min="100" max="10000" step="100" value="10000"
+          oninput="document.getElementById('p-nsim-v').textContent=parseInt(this.value).toLocaleString()+' paths'">
+        <div class="ctrl-val" id="p-nsim-v">10,000 paths</div>
+        <div class="ctrl-sub">Slice of the pre-computed pool · more = tighter distribution</div>
+      </div>
+      <div class="ctrl-item">
+        <label>Display Scenario (seed)</label>
+        <input type="number" id="p-seed" value="42" min="1" max="9999">
+        <div class="ctrl-sub" style="margin-top:4px">Selects which single path to display — all 10k used for statistics</div>
+      </div>
+    </div>
+    <button class="run-btn" onclick="showPayoff()" id="run-btn">Calculate Potential Future Payoff</button>
+  </div>
+
+  <div class="loader" id="loader"><div class="spin"></div><div id="loader-msg">Calculating payoff…</div></div>
+
+  <div id="results-section" style="display:none">
+
+    <!-- PERSONAL HEDGING PAYOFF -->
+    <div id="hedge-hero-wrap"></div>
+
+    <!-- AVOIDED LOSS BANNER -->
+    <div id="avoided-banner-wrap"></div>
+
+    <!-- KEY METRICS -->
+    <div class="metrics-row" id="key-metrics"></div>
+
+    <!-- PATH + MONTHLY TABLE -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Simulated AQI-X Delhi Path — 12 Months</div>
+        <div class="path-wrap"><canvas id="pathChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Monthly AQI · GRAP Stage · Your Payoff</div>
+        <div id="monthly-table" style="max-height:280px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+    <!-- SCENARIO ANALYSIS -->
+    <div class="card">
+      <div class="card-title">Scenario Analysis — Hedged vs Unhedged across Bull / Base / Bear paths</div>
+      <div class="scen-grid" id="scenarios"></div>
+    </div>
+
+    <!-- DISTRIBUTION + CAT PNL -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title" id="dist-title">Final AQI Distribution</div>
+        <div class="dist-wrap"><canvas id="distChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Collective Derivative P&L by Category</div>
+        <div style="position:relative;height:260px"><canvas id="catPnlChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- COLLECTIVE CATEGORY SUMMARY -->
+    <div class="card">
+      <div class="card-title">Hedging Outcome by Participant Category</div>
+      <div class="cat-grid-r" id="cat-summary"></div>
+      <div class="card-title" style="margin-top:18px;margin-bottom:12px">All Registered Bids — Settlement Summary</div>
+      <div style="overflow-x:auto"><table class="tbl" id="bids-table"></table></div>
+    </div>
+
+  </div>
+
+  <!-- NO DATA -->
+  <div id="no-data-section" style="display:none">
+    <div class="card">
+      <div class="no-data">
+        <div class="nd-icon">📊</div>
+        <h3>No positions found</h3>
+        <p>Head to the <a href="index.html">Trading Floor</a>, register as a participant, and place at least one trade. Then return here to run the simulation.</p>
+        <p>The simulation will show your hedged payoff, premium spent, and the estimated loss you avoided vs an unhedged position — all calibrated to your sector.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MULT=500;
+const SEA_AVG={0:316,1:253,2:177,3:144,4:158,5:90,6:76,7:82,8:112,9:226,10:354,11:382};
+const SEA_VOL={0:1.15,1:1.05,2:0.92,3:0.85,4:0.88,5:0.82,6:0.80,7:0.82,8:0.90,9:1.05,10:1.18,11:1.20};
+const SPOT=262;
+const SPOT_MONTH=1;
+const KAPPA=1.2;
+const HV3Y=0.34;
+
+// ── SECTOR ECONOMIC LOSS MODEL ───────────────────────────────────
+// Monthly loss (₹ Crore) for each sector at given AQI
+// Based on TERI 2018, CSE 2023, RBI working paper on pollution & productivity
+const SECTOR_LOSS = {
+  construction: { base:28, label:'Construction halt + project delay' },
+  school:       { base:8,  label:'Closure costs + online transition' },
+  hospital:     { base:18, label:'Surge admissions + supply spike' },
+  insurance:    { base:22, label:'Claims payout increase' },
+  airpurifier:  { base:-15,label:'Revenue windfall (natural long)' }, // negative = gain
+  chemicals:    { base:20, label:'Production cut under GRAP' },
+  agriculture:  { base:10, label:'Logistics disruption, burning bans' },
+  automobile:   { base:14, label:'Odd-even demand loss, ICE restrictions' },
+  airline:      { base:12, label:'Diversions, cancellations, compensation' },
+  events:       { base:9,  label:'Outdoor event cancellations, hotel drop' },
+  realty:       { base:7,  label:'Site halts, pricing pressure' },
+  speculator:   { base:0,  label:'No direct operational exposure' }
+};
+
+function grapMultiplier(aqi) {
+  if (aqi <= 100) return 0.02;
+  if (aqi <= 200) return 0.10;
+  if (aqi <= 250) return 0.28;
+  if (aqi <= 300) return 0.55;
+  if (aqi <= 350) return 0.78;
+  if (aqi <= 400) return 1.00;
+  return 1.28; // Stage IV surcharge
+}
+
+function monthlyOperationalLoss(catId, aqi) {
+  const s = SECTOR_LOSS[catId] || { base: 0 };
+  return s.base * grapMultiplier(aqi); // ₹ Crore
+}
+
+// ── BLACK-76 ─────────────────────────────────────────────────────
+function nCDF(x){
+  const a=[0.254829592,-0.284496736,1.421413741,-1.453152027,1.061405429],p=0.3275911;
+  const s=x<0?-1:1;x=Math.abs(x)/Math.sqrt(2);
+  const t=1/(1+p*x);
+  return 0.5*(1+s*(1-((((a[4]*t+a[3])*t+a[2])*t+a[1])*t+a[0])*t*Math.exp(-x*x)));
+}
+function b76Call(F,K,T,v){if(T<=0||v<=0)return Math.max(0,F-K);const d1=(Math.log(F/K)+.5*v*v*T)/(v*Math.sqrt(T)),d2=d1-v*Math.sqrt(T);return F*nCDF(d1)-K*nCDF(d2)}
+function b76Put(F,K,T,v){if(T<=0||v<=0)return Math.max(0,K-F);const d1=(Math.log(F/K)+.5*v*v*T)/(v*Math.sqrt(T)),d2=d1-v*Math.sqrt(T);return K*nCDF(-d2)-F*nCDF(-d1)}
+
+// ── SEEDED RNG ────────────────────────────────────────────────────
+function makeRng(seed){
+  let s=seed;
+  return function(){
+    s=(s*1664525+1013904223)&0xffffffff;
+    const u=Math.max(1e-10,(s>>>0)/0xffffffff);
+    s=(s*1664525+1013904223)&0xffffffff;
+    const v=(s>>>0)/0xffffffff;
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+  };
+}
+
+// ── SCHWARTZ FUTURES PRICE ────────────────────────────────────────
+function schwartzF(targetMonth,T){
+  return Math.round(SEA_AVG[targetMonth]*Math.pow(SPOT/SEA_AVG[SPOT_MONTH],Math.exp(-KAPPA*T)));
+}
+
+// ── BROWNIAN MOTION ───────────────────────────────────────────────
+function simulatePath(baseVol, seed){
+  const rng=makeRng(seed);
+  const path=[SPOT]; // fixed start
+  const dt=1/12, kappa=0.6;
+  for(let i=0;i<12;i++){
+    const d=new Date('2026-02-01'); d.setMonth(d.getMonth()+i+1);
+    const m=d.getMonth();
+    const seasonalMean=SEA_AVG[m];
+    const seasonalVol=baseVol*SEA_VOL[m];
+    const prev=path[path.length-1];
+    const drift=kappa*(Math.log(seasonalMean)-Math.log(prev))*dt;
+    const shock=seasonalVol*Math.sqrt(dt)*rng();
+    path.push(Math.max(20,Math.round(prev*Math.exp(drift+shock))));
+  }
+  return path;
+}
+
+// ── POSITION PAYOFF ───────────────────────────────────────────────
+function calcPositionPayoff(pos, monthlyAqi){
+  const expiryIdx = Math.min(pos.futIdx+1, monthlyAqi.length-1);
+  const settlementAqi = monthlyAqi[expiryIdx];
+  const vol = HV3Y * SEA_VOL[pos.K ? new Date('2026-02-01').setMonth(1+pos.futIdx) : 0] || HV3Y;
+  let intrinsic=0;
+  if(pos.type==='Future') intrinsic=settlementAqi;
+  else if(pos.type==='Call') intrinsic=Math.max(0, settlementAqi-(pos.K||0));
+  else if(pos.type==='Put') intrinsic=Math.max(0, (pos.K||0)-settlementAqi);
+  const pnlRaw = pos.type==='Future'
+    ? (intrinsic-pos.entryPx)*MULT*pos.qty
+    : (intrinsic-pos.entryPx)*MULT*pos.qty;
+  const pnl = pos.dir==='long' ? pnlRaw : -pnlRaw;
+  const premiumSpent = pos.dir==='long' && pos.type!=='Future' ? pos.entryPx*MULT*pos.qty : 0;
+  return { settlementAqi, intrinsic, pnl, premiumSpent };
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+let pathChart, distChart, catPnlChart;
+
+function renderPathChart(monthlyAqi, labels, allPaths){
+  const cols=monthlyAqi.map(v=>v>300?'#c03020':v>200?'#c07020':v>100?'#a08020':'#1e6e3a');
+  // Fan of paths (show 10 representative paths behind main path)
+  const fanDatasets = allPaths
+    .filter((_,i)=> i % Math.max(1,Math.floor(allPaths.length/12)) === 0)
+    .slice(0,12)
+    .map(p=>({
+      data:[SPOT,...p.slice(1)],
+      borderColor:'rgba(26,74,138,0.07)',
+      borderWidth:1,pointRadius:0,fill:false,tension:.3
+    }));
+  if(pathChart)pathChart.destroy();
+  pathChart=new Chart(document.getElementById('pathChart'),{
+    data:{
+      labels:['Now',...labels],
+      datasets:[
+        ...fanDatasets,
+        {type:'line',data:monthlyAqi,borderColor:'#1a4a8a',backgroundColor:'rgba(26,74,138,.08)',
+          fill:true,tension:.3,pointRadius:5,pointBackgroundColor:cols,borderWidth:2.5,label:'Selected path'},
+        {type:'line',data:monthlyAqi.map(()=>300),borderColor:'rgba(192,48,32,.35)',
+          borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false,label:'GRAP III (300)'}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>ctx.dataset.label==='Selected path'?'AQI: '+ctx.raw+' — '+(ctx.raw>400?'Severe':ctx.raw>300?'Very Unhealthy':ctx.raw>200?'Poor':ctx.raw>100?'Moderate':'Good'):null}}},
+      scales:{
+        x:{ticks:{color:'#8a8a82',font:{size:11}},grid:{display:false}},
+        y:{ticks:{color:'#8a8a82',font:{size:10}},grid:{color:'#f0ede4'},min:0,max:500}
+      }}
+  });
+}
+
+function renderDistChart(allPaths, nSim, selectedFinal){
+  const finals = allPaths.map(p=>p[p.length-1]);
+  finals.sort((a,b)=>a-b);
+  const bins=Array(10).fill(0);
+  finals.forEach(v=>{const b=Math.min(9,Math.floor(v/50));bins[b]++});
+  const labels=['0–50','50–100','100–150','150–200','200–250','250–300','300–350','350–400','400–450','450+'];
+  const myBin=Math.min(9,Math.floor(selectedFinal/50));
+  document.getElementById('dist-title').textContent=`Final AQI-X Delhi Distribution — ${nSim} paths`;
+  if(distChart)distChart.destroy();
+  distChart=new Chart(document.getElementById('distChart'),{
+    type:'bar',
+    data:{labels,datasets:[{
+      data:bins,borderRadius:3,
+      backgroundColor:labels.map((_,i)=>i===myBin?'#1a4a8a':i>=6?'rgba(192,48,32,.35)':i>=4?'rgba(192,112,32,.30)':'rgba(30,110,58,.30)')
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.raw} paths (${(ctx.raw/nSim*100).toFixed(1)}%)${ctx.dataIndex===myBin?' ← selected path':''}`}}},
+      scales:{
+        x:{ticks:{color:'#8a8a82',font:{size:10}},grid:{display:false}},
+        y:{ticks:{color:'#8a8a82',font:{size:10}},grid:{color:'#f0ede4'},
+          title:{display:true,text:'Number of paths',color:'#8a8a82',font:{size:10}}}
+      }}
+  });
+}
+
+function renderCatPnlChart(catResults){
+  const cats=Object.values(catResults).filter(c=>c.count>0).sort((a,b)=>b.totalPnl-a.totalPnl);
+  if(!cats.length)return;
+  if(catPnlChart)catPnlChart.destroy();
+  catPnlChart=new Chart(document.getElementById('catPnlChart'),{
+    type:'bar',
+    data:{
+      labels:cats.map(c=>c.icon+' '+c.name.split(' ')[0]),
+      datasets:[
+        {label:'Derivative P&L',data:cats.map(c=>+(c.totalPnl/100000).toFixed(1)),
+          backgroundColor:cats.map(c=>c.totalPnl>=0?'rgba(30,110,58,.7)':'rgba(192,48,32,.7)'),borderRadius:3},
+        {label:'Avoided Loss',data:cats.map(c=>+(c.totalAvoidedLoss/100000).toFixed(1)),
+          backgroundColor:'rgba(26,74,138,.25)',borderRadius:3}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'DM Mono'},boxWidth:10,padding:10}}},
+      scales:{
+        x:{ticks:{color:'#8a8a82',font:{size:10}},grid:{display:false}},
+        y:{ticks:{color:'#8a8a82',font:{size:10},callback:v=>v+'L'},grid:{color:'#f0ede4'},
+          title:{display:true,text:'₹ Lakh',color:'#8a8a82',font:{size:10}}}
+      }}
+  });
+}
+
+// ── MAIN RUN ──────────────────────────────────────────────────────
+function runSimulation(){
+  const nSim = parseInt(document.getElementById('p-nsim').value)||500;
+  const seed  = parseInt(document.getElementById('p-seed').value)||42;
+  const vol   = HV3Y;
+
+  document.getElementById('loader').classList.add('show');
+  document.getElementById('results-section').style.display='none';
+  document.getElementById('no-data-section').style.display='none';
+  document.getElementById('run-btn').disabled=true;
+
+  // Progress messages
+  const msgs=['Generating paths…','Applying seasonal mean reversion…','Calculating payoffs…','Aggregating outcomes…'];
+  let mi=0;
+  const msgInt=setInterval(()=>{
+    document.getElementById('loader-msg').textContent=msgs[Math.min(mi++,msgs.length-1)];
+  },400);
+
+  setTimeout(()=>{
+    clearInterval(msgInt);
+
+    // Build month labels
+    const labels=[];
+    for(let i=1;i<=12;i++){
+      const d=new Date('2026-02-01');d.setMonth(d.getMonth()+i);
+      labels.push(MONTHS[d.getMonth()]+'\''+String(d.getFullYear()).slice(2));
+    }
+
+    // Generate all paths
+    const allPaths=[];
+    for(let i=0;i<nSim;i++) allPaths.push(simulatePath(vol, seed*37+i*13+7));
+
+    // Selected path (seed as-is)
+    const selectedPath = simulatePath(vol, seed);
+    const finalAqi = selectedPath[selectedPath.length-1];
+    const avgAqi   = Math.round(selectedPath.slice(1).reduce((a,b)=>a+b,0)/12);
+    const maxAqi   = Math.max(...selectedPath);
+    const severeMonths = selectedPath.slice(1).filter(v=>v>300).length;
+
+    // Monte Carlo stats
+    const finals = allPaths.map(p=>p[p.length-1]).sort((a,b)=>a-b);
+    const p5  = finals[Math.floor(.05*nSim)];
+    const p50 = finals[Math.floor(.50*nSim)];
+    const p95 = finals[Math.floor(.95*nSim)];
+
+    // User data
+    const currentUser = JSON.parse(localStorage.getItem('daqi_current_user')||'null');
+    const userPositions = currentUser
+      ? JSON.parse(localStorage.getItem('daqi_positions_'+currentUser.name)||'[]') : [];
+    const allPositions = JSON.parse(localStorage.getItem('daqi_all_positions')||'[]');
+
+    // ── PERSONAL PAYOFF ──────────────────────────────────────────
+    let myDerivativePnl=0, myPremiumSpent=0;
+    userPositions.forEach(p=>{
+      const r=calcPositionPayoff(p,selectedPath);
+      myDerivativePnl+=r.pnl;
+      myPremiumSpent+=r.premiumSpent;
+    });
+
+    // Operational loss across all 12 months (unhedged scenario)
+    let myUnhedgedLoss=0;
+    const catId = currentUser?.category?.id || 'speculator';
+    selectedPath.slice(1).forEach(aqi=>{
+      myUnhedgedLoss += monthlyOperationalLoss(catId, aqi) * 10000000; // convert Cr to ₹
+    });
+    // Avoided loss = what hedger gained relative to doing nothing
+    // Hedged outcome: paid premium, received derivative payoff
+    // Unhedged outcome: full operational loss
+    // Net benefit of hedging = derivative pnl - premium spent (net derivative payoff)
+    //   which offsets a portion of the operational loss
+    const netDerivativePayoff = myDerivativePnl; // includes premium cost
+    const avoidedLoss = Math.max(0, netDerivativePayoff); // the portion of loss recovered
+    const hedgingEfficiency = myUnhedgedLoss > 0
+      ? Math.min(100, (avoidedLoss / myUnhedgedLoss * 100)).toFixed(1) : '—';
+
+    // ── HERO CARD ──────────────────────────────────────────────
+    if(currentUser && userPositions.length>0){
+      const cat=currentUser.category;
+      const premiumStr='₹'+Math.abs(Math.round(myPremiumSpent)).toLocaleString('en-IN');
+      const pnlStr=(myDerivativePnl>=0?'+':'')+'₹'+Math.abs(Math.round(myDerivativePnl)).toLocaleString('en-IN');
+      document.getElementById('hedge-hero-wrap').innerHTML=`
+        <div class="hedge-hero">
+          <div class="hh-label">Your Simulation Outcome</div>
+          <div class="hh-name">${currentUser.name}</div>
+          <div class="hh-cat">${cat.icon} ${cat.name} · ${userPositions.length} position${userPositions.length!==1?'s':''}</div>
+          <div class="hedge-stats">
+            <div class="hs">
+              <div class="hsk">Premium Paid</div>
+              <div class="hsv gold">${premiumStr}</div>
+              <div class="hss">Total option cost</div>
+            </div>
+            <div class="hs">
+              <div class="hsk">Derivative P&L</div>
+              <div class="hsv ${myDerivativePnl>=0?'pos':'neg'}">${pnlStr}</div>
+              <div class="hss">Net of premium paid</div>
+            </div>
+            <div class="hs">
+              <div class="hsk">Operational Loss (unhedged)</div>
+              <div class="hsv neg">₹${Math.abs(Math.round(myUnhedgedLoss/10000000)).toLocaleString('en-IN')} Cr</div>
+              <div class="hss">Estimated sector impact</div>
+            </div>
+            <div class="hs">
+              <div class="hsk">Hedge Efficiency</div>
+              <div class="hsv gold">${hedgingEfficiency}${hedgingEfficiency!=='—'?'%':''}</div>
+              <div class="hss">Loss recovered via hedge</div>
+            </div>
+          </div>
+        </div>`;
+
+      // ── AVOIDED LOSS BANNER ──────────────────────────────────
+      const sectorInfo = SECTOR_LOSS[catId] || {base:0,label:'No direct exposure'};
+      const isPositive = avoidedLoss > 0;
+      const bannerClass = isPositive ? 'positive' : myUnhedgedLoss===0 ? 'neutral' : 'negative';
+      const avoidedCr = (avoidedLoss/10000000).toFixed(1);
+      const unhedgedCr = (myUnhedgedLoss/10000000).toFixed(1);
+      document.getElementById('avoided-banner-wrap').innerHTML=`
+        <div class="avoided-banner ${bannerClass}">
+          <div class="ab-left">
+            <h3 style="color:${isPositive?'var(--green)':'var(--red)'}">${isPositive?'Hedge worked — loss partially recovered':'Hedge cost not recovered in this scenario'}</h3>
+            <p>As a <strong>${cat.name}</strong>, the simulated 12-month AQI path would have caused an estimated operational loss of <strong>₹${unhedgedCr} Cr</strong> without any hedging (${sectorInfo.label}). Your AQI-X Delhi position${userPositions.length>1?'s':''} generated a derivative payoff of <strong>${pnlStr}</strong>, recovering ${hedgingEfficiency}% of that exposure. The hedge cost you <strong>${premiumStr}</strong> in premium.</p>
+            ${!isPositive?'<p style="margin-top:6px;color:var(--ink3)">In this clean-air scenario your hedge did not pay off — but that is the cost of insurance. Run a higher-seed simulation to see a high-AQI path where the hedge fully pays.</p>':''}
+          </div>
+          <div class="ab-right">
+            <div class="abk">Avoided Loss</div>
+            <div class="abv" style="color:${isPositive?'var(--green)':'var(--red)'}">${isPositive?'+':'-'}₹${avoidedCr}Cr</div>
+          </div>
+        </div>`;
+    } else {
+      document.getElementById('hedge-hero-wrap').innerHTML=`
+        <div style="background:var(--blue-l);border:1px solid #b0c8e8;border-radius:10px;padding:18px 22px;margin-bottom:18px;font-size:13px;color:var(--blue)">
+          <strong>No personal positions found.</strong> <a href="index.html" style="color:var(--blue)">Register and place trades</a> on the Trading Floor to see your individual hedging outcome and avoided loss calculation here.
+        </div>`;
+      document.getElementById('avoided-banner-wrap').innerHTML='';
+    }
+
+    // ── KEY METRICS ────────────────────────────────────────────
+    document.getElementById('key-metrics').innerHTML=`
+      <div class="mc"><div class="ml">Start</div><div class="mv gold">262</div><div class="ms">Feb 2026</div></div>
+      <div class="mc"><div class="ml">12M Final</div><div class="mv ${finalAqi>300?'dn':finalAqi<150?'up':''}">${finalAqi}</div><div class="ms">${finalAqi>400?'Severe':finalAqi>300?'V.Unhealthy':finalAqi>200?'Poor':finalAqi>100?'Moderate':'Good'}</div></div>
+      <div class="mc"><div class="ml">12M Average</div><div class="mv">${avgAqi}</div></div>
+      <div class="mc"><div class="ml">5th–95th %ile</div><div class="mv" style="font-size:14px">${p5}–${p95}</div><div class="ms">${nSim} paths</div></div>
+      <div class="mc"><div class="ml">Severe Months</div><div class="mv dn">${severeMonths}</div><div class="ms">AQI > 300</div></div>
+      <div class="mc"><div class="ml">Median Final</div><div class="mv">${p50}</div><div class="ms">50th %ile</div></div>`;
+
+    // ── SCENARIO ANALYSIS ─────────────────────────────────────
+    function scenarioOutcome(aqiPath){
+      let derivPnl=0, premPaid=0, opLoss=0;
+      userPositions.forEach(p=>{const r=calcPositionPayoff(p,aqiPath);derivPnl+=r.pnl;premPaid+=r.premiumSpent});
+      aqiPath.slice(1).forEach(aqi=>{ opLoss+=monthlyOperationalLoss(catId,aqi)*10000000 });
+      const avoided=Math.max(0,derivPnl);
+      const eff=opLoss>0?Math.min(100,(avoided/opLoss*100)).toFixed(0):0;
+      return{derivPnl,premPaid,opLoss,avoided,eff};
+    }
+    function bullPath(){ return allPaths.find(p=>p[p.length-1]===p5)||simulatePath(vol,1001) }
+    function basePath(){ return allPaths.find(p=>Math.abs(p[p.length-1]-p50)<10)||simulatePath(vol,2001) }
+    function bearPath(){ return allPaths.find(p=>p[p.length-1]===p95)||simulatePath(vol,3001) }
+
+    const bullOut=scenarioOutcome(bullPath());
+    const baseOut=scenarioOutcome(basePath());
+    const bearOut=scenarioOutcome(bearPath());
+
+    function scCard(cls,label,aqi,out){
+      const col=cls==='bull'?'var(--green)':cls==='base'?'var(--gold)':'var(--red)';
+      const fmt=v=>(v>=0?'+':'')+'₹'+Math.abs(Math.round(v/10000000)*10).toLocaleString('en-IN')+'L';
+      return`<div class="scen-card ${cls}">
+        <div class="scen-label">${label}</div>
+        <div class="scen-aqi" style="color:${col}">${aqi}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:10px">${cls==='bull'?'Clean air scenario (5th %ile)':cls==='base'?'Median scenario (50th %ile)':'High pollution (95th %ile)'}</div>
+        <div class="scen-row"><span>Derivative P&L</span><span style="color:${out.derivPnl>=0?'var(--green)':'var(--red)'};font-weight:600">${(out.derivPnl>=0?'+':'')+'₹'+Math.abs(Math.round(out.derivPnl)).toLocaleString('en-IN')}</span></div>
+        <div class="scen-row"><span>Premium spent</span><span style="color:var(--ink3)">₹${Math.round(out.premPaid).toLocaleString('en-IN')}</span></div>
+        <div class="scen-row"><span>Unhedged op. loss</span><span style="color:var(--red)">₹${(out.opLoss/10000000).toFixed(1)} Cr</span></div>
+        <div class="scen-row"><span>Loss recovered</span><span style="color:var(--green);font-weight:600">₹${(out.avoided/10000000).toFixed(1)} Cr (${out.eff}%)</span></div>
+      </div>`;
+    }
+    document.getElementById('scenarios').innerHTML=
+      scCard('bull','Bull — Clean Air',p5,bullOut)+
+      scCard('base','Base — Median',p50,baseOut)+
+      scCard('bear','Bear — Toxic Air',p95,bearOut);
+
+    // ── MONTHLY TABLE ────────────────────────────────────────
+    let myMonthPnls=[];
+    if(userPositions.length>0){
+      // per-month approximate payoff (settled at each month's AQI)
+      myMonthPnls=selectedPath.slice(1).map((aqi,i)=>{
+        let mp=0;
+        userPositions.forEach(p=>{
+          if(p.futIdx===i){const r=calcPositionPayoff(p,selectedPath);mp+=r.pnl;}
+        });
+        return mp;
+      });
+    }
+    document.getElementById('monthly-table').innerHTML=`
+      <table class="tbl" style="font-size:11px">
+        <thead><tr><th>Month</th><th>AQI</th><th>Stage</th><th>Op. Loss (₹Cr)</th>${userPositions.length?'<th>Deriv. P&L</th>':''}</tr></thead>
+        <tbody>${labels.map((l,i)=>{
+          const v=selectedPath[i+1];
+          const grap=v>400?'Stage IV':v>300?'Stage III':v>200?'Stage II':v>100?'Stage I':'—';
+          const opL=(monthlyOperationalLoss(catId,v)).toFixed(1);
+          const mp=myMonthPnls[i];
+          return`<tr>
+            <td style="font-family:var(--fm)">${l}</td>
+            <td class="${v>300?'dn':v<150?'up':'num'}" style="font-family:var(--fm)">${v}</td>
+            <td style="font-size:10px">${grap}</td>
+            <td class="dn" style="font-family:var(--fm)">${opL>0?'-'+opL:'—'}</td>
+            ${userPositions.length?`<td class="${mp>=0?'up':'dn'}" style="font-family:var(--fm)">${mp!==0?(mp>=0?'+':'')+'₹'+Math.abs(Math.round(mp)).toLocaleString('en-IN'):'—'}</td>`:''}
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+
+    // ── CATEGORY COLLECTIVE ───────────────────────────────────
+    const CATS_DEF={
+      construction:{name:'Construction Co.',icon:'🏗️'},school:{name:'School',icon:'🏫'},
+      hospital:{name:'Hospital',icon:'🏥'},insurance:{name:'Insurance',icon:'🛡️'},
+      airpurifier:{name:'Air Purifier',icon:'💨'},chemicals:{name:'Chemicals',icon:'⚗️'},
+      agriculture:{name:'Agriculture',icon:'🌾'},automobile:{name:'Automobile',icon:'🚗'},
+      airline:{name:'Airline',icon:'✈️'},events:{name:'Events',icon:'🎭'},
+      realty:{name:'Real Estate',icon:'🏢'},speculator:{name:'Speculator',icon:'📈'}
+    };
+    const catResults={};
+    Object.entries(CATS_DEF).forEach(([id,def])=>{
+      catResults[id]={...def,id,count:0,totalPnl:0,totalAvoidedLoss:0,totalOpLoss:0,positions:[]};
+    });
+
+    allPositions.forEach(p=>{
+      const r=calcPositionPayoff(p,selectedPath);
+      const cat=catResults[p.category];
+      if(cat){
+        cat.count++;cat.totalPnl+=r.pnl;
+        const opL=selectedPath.slice(1).reduce((t,aqi)=>t+monthlyOperationalLoss(p.category,aqi)*10000000,0);
+        cat.totalOpLoss+=opL;
+        cat.totalAvoidedLoss+=Math.max(0,r.pnl);
+        cat.positions.push({...p,...r});
+      }
+    });
+
+    // Simulate for empty cats
+    const futsForSim=[];
+    for(let i=1;i<=12;i++){
+      const d=new Date('2026-02-01');d.setMonth(d.getMonth()+i);
+      const m=d.getMonth();
+      futsForSim.push({price:schwartzF(m,i/12),T:i/12,month:m,idx:i-1});
+    }
+    let ss=999;function rrr(){ss=(ss*1664525+1013904223)&0xffffffff;return(ss>>>0)/0xffffffff}
+    const typesByCat={construction:['Call'],school:['Call'],hospital:['Call'],insurance:['Call','Put'],
+      airpurifier:['Call'],chemicals:['Call'],agriculture:['Put','Call'],automobile:['Call'],
+      airline:['Call'],events:['Call'],realty:['Call'],speculator:['Call','Put','Future']};
+
+    Object.entries(catResults).forEach(([id,cat])=>{
+      if(cat.count===0){
+        const n=Math.floor(2+rrr()*3);
+        for(let i=0;i<n;i++){
+          const fi=Math.floor(rrr()*8);const f=futsForSim[fi];
+          const typeOpts=typesByCat[id]||['Call'];
+          const type=typeOpts[Math.floor(rrr()*typeOpts.length)];
+          const stk=[200,250,300,350,400][Math.floor(rrr()*5)];
+          let K=null,entryPx,isCall;
+          if(type==='Future'){K=null;entryPx=f.price;isCall=null}
+          else{K=stk;isCall=type==='Call';entryPx=isCall?b76Call(f.price,K,f.T,HV3Y*SEA_VOL[f.month]):b76Put(f.price,K,f.T,HV3Y*SEA_VOL[f.month])}
+          const dir=id==='airpurifier'?'short':'long';
+          const qty=Math.floor(1+rrr()*4);
+          const simPos={inst:`AQI-X Delhi ${type} ${MONTHS[f.month]} K${K||''}`,type,dir,qty,entryPx,futIdx:f.idx,K,isCall,mult:MULT};
+          const r=calcPositionPayoff(simPos,selectedPath);
+          const opL=selectedPath.slice(1).reduce((t,aqi)=>t+monthlyOperationalLoss(id,aqi)*10000000,0);
+          cat.count++;cat.totalPnl+=r.pnl;cat.totalOpLoss+=opL;
+          cat.totalAvoidedLoss+=Math.max(0,r.pnl);
+          cat.positions.push({...simPos,...r,participant:'[Simulated]'});
+        }
+      }
+    });
+
+    const sortedCats=Object.values(catResults).filter(c=>c.count>0).sort((a,b)=>b.totalAvoidedLoss-a.totalAvoidedLoss);
+    const maxPnl=Math.max(1,...sortedCats.map(c=>Math.abs(c.totalPnl)));
+
+    document.getElementById('cat-summary').innerHTML=sortedCats.map(c=>{
+      const opLCr=(c.totalOpLoss/10000000).toFixed(1);
+      const avCr=(c.totalAvoidedLoss/10000000).toFixed(1);
+      const eff=c.totalOpLoss>0?Math.min(100,(c.totalAvoidedLoss/c.totalOpLoss*100)).toFixed(0):0;
+      return`<div class="cat-card-r">
+        <div class="cc-head">
+          <div class="cc-icon">${c.icon}</div>
+          <div><div class="cc-name">${c.name}</div><div class="cc-count">${c.count} participant${c.count!==1?'s':''}</div></div>
+        </div>
+        <div class="cc-pnl ${c.totalPnl>=0?'pos':'neg'}">${c.totalPnl>=0?'+':''}₹${Math.abs(Math.round(c.totalPnl)).toLocaleString('en-IN')}</div>
+        <div class="cc-avoided">Op. loss: ₹${opLCr}Cr · Recovered: <span>₹${avCr}Cr (${eff}%)</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${(Math.abs(c.totalPnl)/maxPnl*100).toFixed(0)}%;background:${c.totalPnl>=0?'var(--green)':'var(--red)'}"></div></div>
+      </div>`;
+    }).join('');
+
+    // Bids table
+    const allPos=[
+      ...allPositions.map(p=>{const r=calcPositionPayoff(p,selectedPath);return{...p,...r}}),
+      ...sortedCats.flatMap(c=>c.positions.filter(p=>p.participant==='[Simulated]').map(p=>({...p,catName:c.name,catIcon:c.icon})))
+    ];
+    document.getElementById('bids-table').innerHTML=`
+      <thead><tr><th>Category</th><th>Participant</th><th>Instrument</th><th>Dir</th><th>Qty</th><th>Entry Px</th><th>Settlement</th><th>Derivative P&L</th><th>Op. Loss Avoided</th></tr></thead>
+      <tbody>${allPos.slice(0,30).map(p=>{
+        const opLMonth=monthlyOperationalLoss(p.category||'speculator',p.settlementAqi||250)*10000000;
+        const avL=Math.max(0,p.pnl||0);
+        return`<tr>
+          <td>${p.catIcon||''} ${p.catName||p.category||''}</td>
+          <td style="font-size:11px">${p.participant||'—'}</td>
+          <td style="font-size:11px;font-family:var(--fm)">${p.inst||''}</td>
+          <td><span style="font-size:10px;padding:2px 7px;border-radius:3px;font-weight:600;background:${(p.dir||'long')==='long'?'var(--green-l)':'var(--red-l)'};color:${(p.dir||'long')==='long'?'var(--green)':'var(--red)'}">${(p.dir||'').toUpperCase()}</span></td>
+          <td class="num">${p.qty||1}</td>
+          <td class="num">${typeof p.entryPx==='number'?p.entryPx.toFixed(1):'—'}</td>
+          <td class="num">${typeof p.settlementAqi==='number'?p.settlementAqi:'—'}</td>
+          <td class="${typeof p.pnl==='number'&&p.pnl>=0?'up':'dn'}">${typeof p.pnl==='number'?(p.pnl>=0?'+':'')+'₹'+Math.abs(Math.round(p.pnl)).toLocaleString('en-IN'):'—'}</td>
+          <td class="up">₹${(avL/10000000).toFixed(2)}Cr</td>
+        </tr>`;
+      }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--ink3);padding:16px">No positions yet</td></tr>'}</tbody>`;
+
+    // Render charts
+    renderPathChart(selectedPath, labels, allPaths);
+    renderDistChart(allPaths, nSim, finalAqi);
+    renderCatPnlChart(catResults);
+
+    document.getElementById('loader').classList.remove('show');
+    document.getElementById('results-section').style.display='block';
+    document.getElementById('run-btn').disabled=false;
+    window.scrollTo({top:200,behavior:'smooth'});
+  }, 100);
+}
+
+// ── PRE-COMPUTE ENGINE ────────────────────────────────────────────
+// Generates 10,000 paths on page load in non-blocking batches.
+// showPayoff() is instant — it just slices CACHED_PATHS.
+const TOTAL_PATHS = 10000;
+const BATCH_SIZE  = 200; // paths per tick — keeps UI responsive
+window.CACHED_PATHS = [];
+window.CACHE_READY  = false;
+
+function precompute(){
+  let generated = 0;
+  function batch(){
+    const end = Math.min(generated + BATCH_SIZE, TOTAL_PATHS);
+    for(let i = generated; i < end; i++){
+      CACHED_PATHS.push(simulatePath(HV3Y, i * 37 + 7));
+    }
+    generated = end;
+    const pct = Math.round(generated / TOTAL_PATHS * 100);
+    document.getElementById('precompute-bar').style.width = pct + '%';
+    document.getElementById('precompute-pct').textContent = pct + '%';
+    if(generated < TOTAL_PATHS){
+      requestAnimationFrame(batch);
+    } else {
+      // Done — swap UI
+      CACHE_READY = true;
+      document.getElementById('precompute-card').style.display = 'none';
+      document.getElementById('controls-card').style.display = 'block';
+      document.getElementById('precompute-msg').textContent = '10,000 paths ready.';
+      // Auto-run payoff if user is registered
+      const u = JSON.parse(localStorage.getItem('daqi_current_user')||'null');
+      if(u) showPayoff();
+    }
+  }
+  requestAnimationFrame(batch);
+}
+
+// ── RENAMED ENTRY POINT ───────────────────────────────────────────
+function showPayoff(){
+  if(!CACHE_READY){
+    document.getElementById('precompute-msg').textContent = 'Still computing paths, please wait a moment…';
+    return;
+  }
+  const nSim = Math.min(parseInt(document.getElementById('p-nsim').value)||10000, CACHED_PATHS.length);
+  const seed  = parseInt(document.getElementById('p-seed').value)||42;
+  // Use pre-computed paths — slice the first nSim
+  const allPaths = CACHED_PATHS.slice(0, nSim);
+  // Selected display path: find the one closest to seed index
+  const selectedPath = CACHED_PATHS[seed % CACHED_PATHS.length] || CACHED_PATHS[0];
+  runPayoffCalculation(allPaths, selectedPath, nSim);
+}
+
+function runPayoffCalculation(allPaths, selectedPath, nSim){
+  document.getElementById('loader').classList.add('show');
+  document.getElementById('results-section').style.display='none';
+  document.getElementById('no-data-section').style.display='none';
+  document.getElementById('run-btn').disabled=true;
+
+  // Yield to browser to paint the loader, then compute synchronously
+  // (payoff math is fast — it's path generation that was slow)
+  requestAnimationFrame(()=>{
+    const vol = HV3Y;
+
+    // Build month labels
+    const labels=[];
+    for(let i=1;i<=12;i++){
+      const d=new Date('2026-02-01');d.setMonth(d.getMonth()+i);
+      labels.push(MONTHS[d.getMonth()]+'\''+String(d.getFullYear()).slice(2));
+    }
+
+    const finalAqi = selectedPath[selectedPath.length-1];
+    const avgAqi   = Math.round(selectedPath.slice(1).reduce((a,b)=>a+b,0)/12);
+    const severeMonths = selectedPath.slice(1).filter(v=>v>300).length;
+
+    // Distribution stats from full cache
+    const finals = allPaths.map(p=>p[p.length-1]).sort((a,b)=>a-b);
+    const p5  = finals[Math.floor(.05*nSim)];
+    const p50 = finals[Math.floor(.50*nSim)];
+    const p95 = finals[Math.floor(.95*nSim)];
+
+    // User data
+    const currentUser = JSON.parse(localStorage.getItem('daqi_current_user')||'null');
+    const userPositions = currentUser
+      ? JSON.parse(localStorage.getItem('daqi_positions_'+currentUser.name)||'[]') : [];
+    const allPositions = JSON.parse(localStorage.getItem('daqi_all_positions')||'[]');
+
+    // Personal payoff
+    let myDerivativePnl=0, myPremiumSpent=0;
+    userPositions.forEach(p=>{
+      const r=calcPositionPayoff(p,selectedPath);
+      myDerivativePnl+=r.pnl;
+      myPremiumSpent+=r.premiumSpent;
+    });
+
+    const catId = currentUser?.category?.id || 'speculator';
+    let myUnhedgedLoss=0;
+    selectedPath.slice(1).forEach(aqi=>{ myUnhedgedLoss+=monthlyOperationalLoss(catId,aqi)*10000000 });
+    const avoidedLoss = Math.max(0, myDerivativePnl);
+    const hedgingEfficiency = myUnhedgedLoss>0 ? Math.min(100,(avoidedLoss/myUnhedgedLoss*100)).toFixed(1) : '—';
+
+    // Hero card
+    if(currentUser && userPositions.length>0){
+      const cat=currentUser.category;
+      const premiumStr='₹'+Math.abs(Math.round(myPremiumSpent)).toLocaleString('en-IN');
+      const pnlStr=(myDerivativePnl>=0?'+':'')+'₹'+Math.abs(Math.round(myDerivativePnl)).toLocaleString('en-IN');
+      document.getElementById('hedge-hero-wrap').innerHTML=`
+        <div class="hedge-hero">
+          <div class="hh-label">Potential Future Payoff — Your Position</div>
+          <div class="hh-name">${currentUser.name}</div>
+          <div class="hh-cat">${cat.icon} ${cat.name} · ${userPositions.length} position${userPositions.length!==1?'s':''} · ${nSim.toLocaleString()} paths</div>
+          <div class="hedge-stats">
+            <div class="hs"><div class="hsk">Premium Paid</div><div class="hsv gold">${premiumStr}</div><div class="hss">Total option cost</div></div>
+            <div class="hs"><div class="hsk">Derivative P&L</div><div class="hsv ${myDerivativePnl>=0?'pos':'neg'}">${pnlStr}</div><div class="hss">Net of premium paid</div></div>
+            <div class="hs"><div class="hsk">Unhedged Op. Loss</div><div class="hsv neg">₹${(myUnhedgedLoss/10000000).toFixed(1)} Cr</div><div class="hss">Estimated sector impact</div></div>
+            <div class="hs"><div class="hsk">Hedge Efficiency</div><div class="hsv gold">${hedgingEfficiency}${hedgingEfficiency!=='—'?'%':''}</div><div class="hss">Loss recovered via hedge</div></div>
+          </div>
+        </div>`;
+      const sectorInfo=SECTOR_LOSS[catId]||{base:0,label:'No direct exposure'};
+      const isPos=avoidedLoss>0;
+      const avCr=(avoidedLoss/10000000).toFixed(1);
+      const unCr=(myUnhedgedLoss/10000000).toFixed(1);
+      document.getElementById('avoided-banner-wrap').innerHTML=`
+        <div class="avoided-banner ${isPos?'positive':myUnhedgedLoss===0?'neutral':'negative'}">
+          <div class="ab-left">
+            <h3 style="color:${isPos?'var(--green)':'var(--red)'}">${isPos?'Hedge recovered loss in this scenario':'Premium cost not recovered in this scenario'}</h3>
+            <p>As a <strong>${cat.name}</strong>, the displayed 12-month path would cause an estimated <strong>₹${unCr} Cr</strong> in operational losses without hedging (${sectorInfo.label}). Your AQI-X Delhi position${userPositions.length>1?'s':''} generated a derivative payoff of <strong>${pnlStr}</strong>, recovering ${hedgingEfficiency}% of that exposure at a premium cost of <strong>${premiumStr}</strong>.</p>
+            ${!isPos?'<p style="margin-top:6px;color:var(--ink3)">This is a clean-air scenario — the hedge did not activate. Change the seed to explore a high-AQI path where the hedge pays fully.</p>':''}
+          </div>
+          <div class="ab-right"><div class="abk">Loss Avoided</div><div class="abv" style="color:${isPos?'var(--green)':'var(--red)'}">${isPos?'+':'-'}₹${avCr}Cr</div></div>
+        </div>`;
+    } else {
+      document.getElementById('hedge-hero-wrap').innerHTML=`
+        <div style="background:var(--blue-l);border:1px solid #b0c8e8;border-radius:10px;padding:18px 22px;margin-bottom:18px;font-size:13px;color:var(--blue)">
+          <strong>No personal positions found.</strong> <a href="index.html" style="color:var(--blue)">Register and place trades</a> on the Trading Floor to see your individual payoff here.
+        </div>`;
+      document.getElementById('avoided-banner-wrap').innerHTML='';
+    }
+
+    // Key metrics
+    document.getElementById('key-metrics').innerHTML=`
+      <div class="mc"><div class="ml">Start</div><div class="mv gold">262</div><div class="ms">Feb 2026</div></div>
+      <div class="mc"><div class="ml">12M Final</div><div class="mv ${finalAqi>300?'dn':finalAqi<150?'up':''}">${finalAqi}</div><div class="ms">${finalAqi>400?'Severe':finalAqi>300?'V.Unhealthy':finalAqi>200?'Poor':finalAqi>100?'Moderate':'Good'}</div></div>
+      <div class="mc"><div class="ml">12M Average</div><div class="mv">${avgAqi}</div></div>
+      <div class="mc"><div class="ml">5th–95th %ile</div><div class="mv" style="font-size:14px">${p5}–${p95}</div><div class="ms">${nSim.toLocaleString()} paths</div></div>
+      <div class="mc"><div class="ml">Severe Months</div><div class="mv dn">${severeMonths}</div><div class="ms">AQI > 300</div></div>
+      <div class="mc"><div class="ml">Median Final</div><div class="mv">${p50}</div><div class="ms">50th %ile</div></div>`;
+
+    // Scenarios
+    function scenarioOutcome(aqiPath){
+      let derivPnl=0,premPaid=0,opLoss=0;
+      userPositions.forEach(p=>{const r=calcPositionPayoff(p,aqiPath);derivPnl+=r.pnl;premPaid+=r.premiumSpent});
+      aqiPath.slice(1).forEach(aqi=>{opLoss+=monthlyOperationalLoss(catId,aqi)*10000000});
+      const avoided=Math.max(0,derivPnl);
+      const eff=opLoss>0?Math.min(100,(avoided/opLoss*100)).toFixed(0):0;
+      return{derivPnl,premPaid,opLoss,avoided,eff};
+    }
+    const bullPath=allPaths.find(p=>p[p.length-1]===p5)||allPaths[0];
+    const basePath=allPaths.find(p=>Math.abs(p[p.length-1]-p50)<15)||allPaths[Math.floor(nSim/2)];
+    const bearPath=allPaths.find(p=>p[p.length-1]===p95)||allPaths[nSim-1];
+    const bullOut=scenarioOutcome(bullPath);
+    const baseOut=scenarioOutcome(basePath);
+    const bearOut=scenarioOutcome(bearPath);
+
+    function scCard(cls,label,aqi,out){
+      const col=cls==='bull'?'var(--green)':cls==='base'?'var(--gold)':'var(--red)';
+      return`<div class="scen-card ${cls}">
+        <div class="scen-label">${label}</div>
+        <div class="scen-aqi" style="color:${col}">${aqi}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:10px">${cls==='bull'?'Clean air (5th %ile)':cls==='base'?'Median outcome (50th %ile)':'High pollution (95th %ile)'}</div>
+        <div class="scen-row"><span>Derivative P&L</span><span style="color:${out.derivPnl>=0?'var(--green)':'var(--red)'};font-weight:600">${(out.derivPnl>=0?'+':'')+'₹'+Math.abs(Math.round(out.derivPnl)).toLocaleString('en-IN')}</span></div>
+        <div class="scen-row"><span>Premium paid</span><span style="color:var(--ink3)">₹${Math.round(out.premPaid).toLocaleString('en-IN')}</span></div>
+        <div class="scen-row"><span>Unhedged op. loss</span><span style="color:var(--red)">₹${(out.opLoss/10000000).toFixed(1)} Cr</span></div>
+        <div class="scen-row"><span>Loss recovered</span><span style="color:var(--green);font-weight:600">₹${(out.avoided/10000000).toFixed(1)} Cr (${out.eff}%)</span></div>
+      </div>`;
+    }
+    document.getElementById('scenarios').innerHTML=
+      scCard('bull','Bull — Clean Air',p5,bullOut)+
+      scCard('base','Base — Median',p50,baseOut)+
+      scCard('bear','Bear — Toxic Air',p95,bearOut);
+
+    // Monthly table
+    const myMonthPnls=selectedPath.slice(1).map((_,i)=>{
+      let mp=0;
+      userPositions.forEach(p=>{if(p.futIdx===i){const r=calcPositionPayoff(p,selectedPath);mp+=r.pnl;}});
+      return mp;
+    });
+    document.getElementById('monthly-table').innerHTML=`
+      <table class="tbl" style="font-size:11px">
+        <thead><tr><th>Month</th><th>AQI</th><th>Stage</th><th>Op. Loss (₹Cr)</th>${userPositions.length?'<th>Deriv. P&L</th>':''}</tr></thead>
+        <tbody>${labels.map((l,i)=>{
+          const v=selectedPath[i+1];
+          const grap=v>400?'Stage IV':v>300?'Stage III':v>200?'Stage II':v>100?'Stage I':'—';
+          const opL=monthlyOperationalLoss(catId,v).toFixed(1);
+          const mp=myMonthPnls[i];
+          return`<tr>
+            <td style="font-family:var(--fm)">${l}</td>
+            <td class="${v>300?'dn':v<150?'up':'num'}" style="font-family:var(--fm)">${v}</td>
+            <td style="font-size:10px">${grap}</td>
+            <td class="dn" style="font-family:var(--fm)">${parseFloat(opL)>0?'-'+opL:'—'}</td>
+            ${userPositions.length?`<td class="${mp>=0?'up':'dn'}" style="font-family:var(--fm)">${mp!==0?(mp>=0?'+':'')+'₹'+Math.abs(Math.round(mp)).toLocaleString('en-IN'):'—'}</td>`:''}
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+
+    // Category collective
+    const CATS_DEF={
+      construction:{name:'Construction Co.',icon:'🏗️'},school:{name:'School',icon:'🏫'},
+      hospital:{name:'Hospital',icon:'🏥'},insurance:{name:'Insurance',icon:'🛡️'},
+      airpurifier:{name:'Air Purifier',icon:'💨'},chemicals:{name:'Chemicals',icon:'⚗️'},
+      agriculture:{name:'Agriculture',icon:'🌾'},automobile:{name:'Automobile',icon:'🚗'},
+      airline:{name:'Airline',icon:'✈️'},events:{name:'Events',icon:'🎭'},
+      realty:{name:'Real Estate',icon:'🏢'},speculator:{name:'Speculator',icon:'📈'}
+    };
+    const catResults={};
+    Object.entries(CATS_DEF).forEach(([id,def])=>{
+      catResults[id]={...def,id,count:0,totalPnl:0,totalAvoidedLoss:0,totalOpLoss:0,positions:[]};
+    });
+    allPositions.forEach(p=>{
+      const r=calcPositionPayoff(p,selectedPath);
+      const cat=catResults[p.category];
+      if(cat){cat.count++;cat.totalPnl+=r.pnl;const opL=selectedPath.slice(1).reduce((t,aqi)=>t+monthlyOperationalLoss(p.category,aqi)*10000000,0);cat.totalOpLoss+=opL;cat.totalAvoidedLoss+=Math.max(0,r.pnl);cat.positions.push({...p,...r})}
+    });
+    const futsForSim=[];
+    for(let i=1;i<=12;i++){const d=new Date('2026-02-01');d.setMonth(d.getMonth()+i);const m=d.getMonth();futsForSim.push({price:schwartzF(m,i/12),T:i/12,month:m,idx:i-1})}
+    let ss=999;function rrr(){ss=(ss*1664525+1013904223)&0xffffffff;return(ss>>>0)/0xffffffff}
+    const typesByCat={construction:['Call'],school:['Call'],hospital:['Call'],insurance:['Call','Put'],airpurifier:['Call'],chemicals:['Call'],agriculture:['Put','Call'],automobile:['Call'],airline:['Call'],events:['Call'],realty:['Call'],speculator:['Call','Put','Future']};
+    Object.entries(catResults).forEach(([id,cat])=>{
+      if(cat.count===0){
+        const n=Math.floor(2+rrr()*3);
+        for(let i=0;i<n;i++){
+          const fi=Math.floor(rrr()*8);const f=futsForSim[fi];
+          const typeOpts=typesByCat[id]||['Call'];const type=typeOpts[Math.floor(rrr()*typeOpts.length)];
+          const stk=[200,250,300,350,400][Math.floor(rrr()*5)];
+          let K=null,entryPx,isCall;
+          if(type==='Future'){K=null;entryPx=f.price;isCall=null}
+          else{K=stk;isCall=type==='Call';entryPx=isCall?b76Call(f.price,K,f.T,HV3Y*SEA_VOL[f.month]):b76Put(f.price,K,f.T,HV3Y*SEA_VOL[f.month])}
+          const dir=id==='airpurifier'?'short':'long';const qty=Math.floor(1+rrr()*4);
+          const simPos={inst:`AQI-X Delhi ${type} ${MONTHS[f.month]} K${K||''}`,type,dir,qty,entryPx,futIdx:f.idx,K,isCall,mult:MULT};
+          const r=calcPositionPayoff(simPos,selectedPath);
+          const opL=selectedPath.slice(1).reduce((t,aqi)=>t+monthlyOperationalLoss(id,aqi)*10000000,0);
+          cat.count++;cat.totalPnl+=r.pnl;cat.totalOpLoss+=opL;cat.totalAvoidedLoss+=Math.max(0,r.pnl);cat.positions.push({...simPos,...r,participant:'[Simulated]'});
+        }
+      }
+    });
+    const sortedCats=Object.values(catResults).filter(c=>c.count>0).sort((a,b)=>b.totalAvoidedLoss-a.totalAvoidedLoss);
+    const maxPnl=Math.max(1,...sortedCats.map(c=>Math.abs(c.totalPnl)));
+    document.getElementById('cat-summary').innerHTML=sortedCats.map(c=>{
+      const opLCr=(c.totalOpLoss/10000000).toFixed(1);const avCr=(c.totalAvoidedLoss/10000000).toFixed(1);
+      const eff=c.totalOpLoss>0?Math.min(100,(c.totalAvoidedLoss/c.totalOpLoss*100)).toFixed(0):0;
+      return`<div class="cat-card-r"><div class="cc-head"><div class="cc-icon">${c.icon}</div><div><div class="cc-name">${c.name}</div><div class="cc-count">${c.count} participant${c.count!==1?'s':''}</div></div></div>
+        <div class="cc-pnl ${c.totalPnl>=0?'pos':'neg'}">${c.totalPnl>=0?'+':''}₹${Math.abs(Math.round(c.totalPnl)).toLocaleString('en-IN')}</div>
+        <div class="cc-avoided">Op. loss: ₹${opLCr}Cr · Recovered: <span>₹${avCr}Cr (${eff}%)</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${(Math.abs(c.totalPnl)/maxPnl*100).toFixed(0)}%;background:${c.totalPnl>=0?'var(--green)':'var(--red)'}"></div></div>
+      </div>`;
+    }).join('');
+
+    const allPos=[
+      ...allPositions.map(p=>{const r=calcPositionPayoff(p,selectedPath);return{...p,...r}}),
+      ...sortedCats.flatMap(c=>c.positions.filter(p=>p.participant==='[Simulated]').map(p=>({...p,catName:c.name,catIcon:c.icon})))
+    ];
+    document.getElementById('bids-table').innerHTML=`
+      <thead><tr><th>Category</th><th>Participant</th><th>Instrument</th><th>Dir</th><th>Qty</th><th>Entry Px</th><th>Settlement</th><th>Derivative P&L</th><th>Op. Loss Avoided</th></tr></thead>
+      <tbody>${allPos.slice(0,30).map(p=>{
+        const avL=Math.max(0,p.pnl||0);
+        return`<tr>
+          <td>${p.catIcon||''} ${p.catName||p.category||''}</td>
+          <td style="font-size:11px">${p.participant||'—'}</td>
+          <td style="font-size:11px;font-family:var(--fm)">${p.inst||''}</td>
+          <td><span style="font-size:10px;padding:2px 7px;border-radius:3px;font-weight:600;background:${(p.dir||'long')==='long'?'var(--green-l)':'var(--red-l)'};color:${(p.dir||'long')==='long'?'var(--green)':'var(--red)'}">${(p.dir||'').toUpperCase()}</span></td>
+          <td class="num">${p.qty||1}</td>
+          <td class="num">${typeof p.entryPx==='number'?p.entryPx.toFixed(1):'—'}</td>
+          <td class="num">${typeof p.settlementAqi==='number'?p.settlementAqi:'—'}</td>
+          <td class="${typeof p.pnl==='number'&&p.pnl>=0?'up':'dn'}">${typeof p.pnl==='number'?(p.pnl>=0?'+':'')+'₹'+Math.abs(Math.round(p.pnl)).toLocaleString('en-IN'):'—'}</td>
+          <td class="up">₹${(avL/10000000).toFixed(2)}Cr</td>
+        </tr>`;
+      }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--ink3);padding:16px">No positions yet</td></tr>'}</tbody>`;
+
+    renderPathChart(selectedPath, labels, allPaths.slice(0, 80));
+    renderDistChart(allPaths, nSim, finalAqi);
+    renderCatPnlChart(catResults);
+
+    document.getElementById('loader').classList.remove('show');
+    document.getElementById('results-section').style.display='block';
+    document.getElementById('run-btn').disabled=false;
+    window.scrollTo({top:200,behavior:'smooth'});
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+const currentUser=JSON.parse(localStorage.getItem('daqi_current_user')||'null');
+if(!currentUser){
+  document.getElementById('precompute-card').style.display='none';
+  document.getElementById('no-data-section').style.display='block';
+} else {
+  precompute(); // start generating paths immediately on page load
+}
+</script>
+</body>
+</html>
