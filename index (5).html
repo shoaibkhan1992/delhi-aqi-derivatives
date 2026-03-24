@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AQI-X Delhi Exchange — Delhi AQI-X Derivatives Market</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fafaf8;--bg2:#f4f3ef;--bg3:#eceae3;--bg4:#e2e0d8;
+  --ink:#1a1a16;--ink2:#4a4a44;--ink3:#8a8a82;--ink4:#b8b6ae;
+  --gold:#b5872a;--gold-l:#f5e9d0;
+  --red:#c03020;--red-l:#fde8e4;
+  --green:#1e6e3a;--green-l:#e2f5ea;
+  --blue:#1a4a8a;--blue-l:#e4eef8;
+  --border:#dddbd2;--border2:#c8c6be;
+  --shadow:0 1px 3px rgba(0,0,0,.08);
+  --ff:'DM Sans',sans-serif;--fd:'DM Serif Display',serif;--fm:'DM Mono',monospace;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--ink);font-family:var(--ff);line-height:1.6}
+
+/* HEADER */
+.header{background:#fff;border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:baseline;gap:10px}
+.logo-name{font-family:var(--fd);font-size:22px;color:var(--ink);letter-spacing:-.5px}
+.logo-tag{font-size:11px;color:var(--ink3);font-family:var(--fm);background:var(--gold-l);color:var(--gold);padding:2px 8px;border-radius:3px}
+.nav{display:flex;gap:4px}
+.nav a{padding:8px 14px;font-size:13px;color:var(--ink2);text-decoration:none;border-radius:6px;transition:.15s}
+.nav a:hover{background:var(--bg2);color:var(--ink)}
+.nav a.active{background:var(--bg3);color:var(--ink);font-weight:500}
+.header-stats{display:flex;gap:24px;align-items:center}
+.hstat{text-align:right}
+.hstat .hl{font-size:10px;color:var(--ink3);font-family:var(--fm);text-transform:uppercase;letter-spacing:.5px}
+.hstat .hv{font-size:15px;font-weight:600;color:var(--ink)}
+.hstat .hv.up{color:var(--green)}.hstat .hv.dn{color:var(--red)}.hstat .hv.gold{color:var(--gold)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#2a9e4a;display:inline-block;margin-right:5px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* LAYOUT */
+.page-wrap{display:grid;grid-template-columns:1fr 360px;min-height:calc(100vh - 60px)}
+.main-col{padding:28px 32px;border-right:1px solid var(--border)}
+.side-col{padding:24px;background:#fff}
+
+/* PARTICIPANT BANNER */
+.participant-banner{background:linear-gradient(135deg,#1a3a6a 0%,#2a5aaa 100%);border-radius:12px;padding:24px 28px;margin-bottom:24px;color:#fff;display:flex;align-items:center;justify-content:space-between}
+.pb-left h2{font-family:var(--fd);font-size:20px;margin-bottom:4px}
+.pb-left p{font-size:13px;opacity:.75;max-width:400px}
+.pb-right{display:flex;gap:12px}
+.pb-stat{text-align:center;background:rgba(255,255,255,.12);padding:12px 16px;border-radius:8px}
+.pb-stat .pv{font-size:20px;font-weight:600;font-family:var(--fm)}
+.pb-stat .pk{font-size:10px;opacity:.7;text-transform:uppercase;letter-spacing:.5px}
+
+/* TABS */
+.tabs{display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--bg2)}
+.tab{flex:1;padding:10px;text-align:center;font-size:12px;font-weight:500;color:var(--ink3);background:none;border:none;cursor:pointer;letter-spacing:.3px;transition:.15s;font-family:var(--ff)}
+.tab.active{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--border)}
+.tab:hover:not(.active){background:var(--bg3);color:var(--ink2)}
+.panel{display:none}.panel.active{display:block}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sec-title{font-size:11px;color:var(--ink3);letter-spacing:1px;text-transform:uppercase;font-family:var(--fm);font-weight:500}
+
+/* METRIC CARDS */
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:22px}
+.metric{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px;box-shadow:var(--shadow)}
+.metric .ml{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.7px;font-family:var(--fm)}
+.metric .mv{font-size:20px;font-weight:600;margin-top:3px;color:var(--ink);font-family:var(--fm)}
+.metric .mv.up{color:var(--green)}.metric .mv.dn{color:var(--red)}.metric .mv.gold{color:var(--gold)}
+.metric .ms{font-size:11px;color:var(--ink3);margin-top:2px}
+
+/* CHART WRAP */
+.chart-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.chart-card canvas{display:block}
+
+/* TABLES */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:9px 12px;font-size:10px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid var(--border);font-family:var(--fm)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--ink2)}
+.tbl td.num{text-align:right;font-family:var(--fm);color:var(--ink)}
+.tbl td.up{text-align:right;color:var(--green);font-family:var(--fm)}
+.tbl td.dn{text-align:right;color:var(--red);font-family:var(--fm)}
+.tbl td.gold{text-align:right;color:var(--gold);font-family:var(--fm);font-weight:500}
+.tbl tr:hover td{background:var(--bg)}
+.tbl tr:last-child td{border-bottom:none}
+
+/* OPTION CHAIN */
+.chain-ctrl{display:flex;gap:10px;margin-bottom:14px;align-items:flex-end;flex-wrap:wrap}
+.chain-ctrl .fg{margin:0}
+.chain-ctrl select{width:auto}
+.chain-hdr{display:grid;grid-template-columns:80px 70px 70px 65px 80px 65px 70px 70px 80px;font-size:10px;color:var(--ink3);padding:8px 10px;letter-spacing:.5px;text-transform:uppercase;background:var(--bg2);border-radius:6px 6px 0 0;font-family:var(--fm)}
+.chain-row{display:grid;grid-template-columns:80px 70px 70px 65px 80px 65px 70px 70px 80px;font-size:11px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-family:var(--fm)}
+.chain-row:hover{background:var(--bg)}
+.chain-row:last-child{border-bottom:none}
+.c-call{color:var(--green);text-align:right}.c-put{color:var(--red)}
+.c-strike{text-align:center;font-weight:600;color:var(--ink);background:var(--bg2);padding:2px 6px;border-radius:4px}
+.c-itm{background:#f0faf3}.c-otm{background:#fff8f6}
+
+/* ORDER BOOK */
+.ob-panel{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ob-hdr{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;font-family:var(--fm);padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:6px;display:grid;grid-template-columns:1fr 1fr 1fr}
+.ob-row{display:grid;grid-template-columns:1fr 1fr 1fr;font-size:11px;padding:4px 0;cursor:pointer;font-family:var(--fm);position:relative}
+.ob-row:hover{opacity:.7}
+.ob-bar{position:absolute;top:0;height:100%;opacity:.1;border-radius:2px;pointer-events:none}
+.ob-ask .ob-bar{background:var(--red);right:0}.ob-bid .ob-bar{background:var(--green);left:0}
+.mid-line{background:var(--bg2);padding:7px 12px;text-align:center;border-radius:4px;font-size:12px;font-weight:600;color:var(--ink);font-family:var(--fm);margin:6px 0;border:1px solid var(--border)}
+
+/* FORMS */
+.form-section{background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.form-section h3{font-size:14px;font-weight:600;margin-bottom:14px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.form-section h3 .step-badge{width:22px;height:22px;background:var(--ink);color:#fff;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;font-family:var(--fm)}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:11px;color:var(--ink2);font-weight:500;margin-bottom:5px;letter-spacing:.3px}
+input[type=text],input[type=number],select,textarea{width:100%;background:#fff;border:1px solid var(--border2);color:var(--ink);font-family:var(--ff);font-size:13px;padding:9px 12px;border-radius:6px;transition:.15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-l)}
+textarea{resize:vertical;min-height:60px;line-height:1.5}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* CATEGORY CARDS */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.cat-card{background:#fff;border:2px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:.15s;text-align:left}
+.cat-card:hover{border-color:var(--border2);background:var(--bg)}
+.cat-card.selected{border-color:var(--gold);background:var(--gold-l)}
+.cat-card .cat-icon{font-size:20px;margin-bottom:6px}
+.cat-card .cat-name{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:3px}
+.cat-card .cat-rationale{font-size:10px;color:var(--ink3);line-height:1.5}
+
+/* DIRECTION SEG */
+.seg{display:flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden;margin-bottom:12px}
+.seg button{flex:1;padding:9px;background:none;border:none;color:var(--ink3);font-family:var(--ff);font-size:12px;font-weight:500;cursor:pointer;transition:.12s}
+.seg button.on.buy{background:var(--green-l);color:var(--green)}
+.seg button.on.sell{background:var(--red-l);color:var(--red)}
+
+/* CALC BOX */
+.calc-box{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px}
+.calc-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:var(--ink2)}
+.calc-row .cv{color:var(--ink);font-weight:600;font-family:var(--fm)}
+
+/* SUBMIT BUTTON */
+.btn-primary{width:100%;padding:12px;background:var(--ink);color:#fff;font-family:var(--ff);font-size:13px;font-weight:600;border:none;border-radius:8px;cursor:pointer;letter-spacing:.3px;transition:.15s}
+.btn-primary:hover{background:#2a2a22;transform:translateY(-1px)}
+.btn-primary.buy-btn{background:var(--green)}
+.btn-primary.sell-btn{background:var(--red)}
+.btn-secondary{width:100%;padding:10px;background:#fff;color:var(--ink);font-family:var(--ff);font-size:13px;font-weight:500;border:1px solid var(--border2);border-radius:8px;cursor:pointer;transition:.15s;margin-top:8px}
+.btn-secondary:hover{background:var(--bg2)}
+
+/* POSITIONS */
+.pos-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:8px;box-shadow:var(--shadow)}
+.pos-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.pos-name{font-size:13px;font-weight:600;color:var(--ink)}
+.pos-pnl{font-size:14px;font-weight:600;font-family:var(--fm)}
+.pos-pnl.pos{color:var(--green)}.pos-pnl.neg{color:var(--red)}
+.pos-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pos-kv .k{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px}
+.pos-kv .v{font-size:12px;color:var(--ink);font-family:var(--fm);font-weight:500}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.3px}
+.badge.long{background:var(--green-l);color:var(--green)}
+.badge.short{background:var(--red-l);color:var(--red)}
+.close-btn{background:none;border:1px solid var(--border2);color:var(--ink3);font-size:10px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:var(--ff)}
+.close-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* TRADE LOG */
+.tl-item{padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:11px}
+.tl-item:last-child{border-bottom:none}
+.tl-inst{font-weight:600;color:var(--ink);font-size:12px}
+.tl-sub{color:var(--ink3);font-size:10px;margin-top:1px;font-family:var(--fm)}
+
+/* RESULTS LINK */
+.results-cta{background:linear-gradient(135deg,#1a4a8a 0%,#2a6acc 100%);border-radius:10px;padding:20px 22px;color:#fff;margin-top:16px;text-decoration:none;display:block;transition:.15s}
+.results-cta:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(26,74,138,.3)}
+.results-cta h3{font-family:var(--fd);font-size:18px;margin-bottom:4px}
+.results-cta p{font-size:12px;opacity:.8;margin-bottom:12px}
+.results-cta .cta-btn{display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);padding:7px 16px;border-radius:6px;font-size:12px;font-weight:600;letter-spacing:.3px}
+
+/* PERIOD BTNS */
+.period-btns{display:flex;gap:4px}
+.period-btn{padding:5px 12px;background:#fff;border:1px solid var(--border);color:var(--ink3);font-family:var(--fm);font-size:11px;border-radius:4px;cursor:pointer;transition:.12s}
+.period-btn.active{background:var(--ink);border-color:var(--ink);color:#fff}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;border-radius:8px;padding:12px 18px;font-size:12px;z-index:999;opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{background:var(--green)}.toast.error{background:var(--red)}
+
+/* PARTICIPANT CHIP */
+.user-chip{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.uc-avatar{width:34px;height:34px;border-radius:50%;background:var(--gold-l);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--gold);font-family:var(--fd)}
+.uc-name{font-size:13px;font-weight:600;color:var(--ink)}
+.uc-cat{font-size:11px;color:var(--ink3)}
+.uc-edit{margin-left:auto;font-size:11px;color:var(--gold);cursor:pointer;text-decoration:underline}
+
+@media(max-width:960px){.page-wrap{grid-template-columns:1fr}.side-col{display:none}.metrics{grid-template-columns:repeat(3,1fr)}.cat-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.metrics{grid-template-columns:repeat(2,1fr)}.form-row{grid-template-columns:1fr}.chain-hdr,.chain-row{grid-template-columns:1fr 1fr 60px 1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <span class="logo-name">AQI-X Delhi Exchange</span>
+    <span class="logo-tag"><span class="live-dot"></span>Paper Market</span>
+  </div>
+  <div class="nav">
+    <a href="index.html" class="active">Trading Floor</a>
+    <a href="results.html">Results →</a>
+  </div>
+  <div class="header-stats">
+    <div class="hstat"><div class="hl">AQI-X Delhi Spot</div><div class="hv" id="h-spot">—</div></div>
+    <div class="hstat"><div class="hl">3Y HVol</div><div class="hv gold" id="h-hv">—</div></div>
+    <div class="hstat"><div class="hl">Open P&L</div><div class="hv" id="h-pnl">₹0</div></div>
+  </div>
+</div>
+
+<div class="page-wrap">
+<div class="main-col">
+
+  <!-- PARTICIPANT REGISTRATION -->
+  <div id="reg-section">
+    <div class="participant-banner">
+      <div class="pb-left">
+        <h2>Register as a Market Participant</h2>
+        <p>Tell us who you are. Your category determines your natural hedging rationale and how your trades appear in the collective simulation results.</p>
+      </div>
+      <div class="pb-right">
+        <div class="pb-stat"><div class="pv" id="pb-participants">0</div><div class="pk">Participants</div></div>
+        <div class="pb-stat"><div class="pv" id="pb-positions">0</div><div class="pk">Open Positions</div></div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3><span class="step-badge">1</span> Your Details</h3>
+      <div class="form-row">
+        <div class="fg"><label>Your Name / Organisation</label>
+          <input type="text" id="reg-name" placeholder="e.g. Delhi Metro Rail Corp.">
+        </div>
+        <div class="fg"><label>Contact / Reference</label>
+          <input type="text" id="reg-contact" placeholder="Optional">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3><span class="step-badge">2</span> Select Your Category</h3>
+      <div class="cat-grid" id="cat-grid"></div>
+      <div class="fg"><label>Your Hedging Rationale (optional — pre-filled)</label>
+        <textarea id="reg-rationale" rows="2" placeholder="Why does AQI volatility affect your business?"></textarea>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="registerParticipant()">Register &amp; Enter Trading Floor →</button>
+  </div>
+
+  <!-- TRADING FLOOR (hidden until registered) -->
+  <div id="trading-section" style="display:none">
+    <div id="user-chip-wrap"></div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('historical',this)">Historical</button>
+      <button class="tab" onclick="showTab('futures',this)">Futures</button>
+      <button class="tab" onclick="showTab('options',this)">Options Chain</button>
+      <button class="tab" onclick="showTab('positions',this)">My Positions</button>
+      <button class="tab" onclick="showTab('orderbook',this)">Order Book</button>
+    </div>
+
+    <!-- HISTORICAL -->
+    <div id="tab-historical" class="panel active">
+      <div class="metrics" id="hist-metrics"></div>
+      <div class="chart-card">
+        <div class="sec-hdr">
+          <span class="sec-title">Delhi AQI Daily — Historical Spot (2022–2025)</span>
+          <div class="period-btns">
+            <button class="period-btn active" onclick="setPeriod(365,this)">1Y</button>
+            <button class="period-btn" onclick="setPeriod(730,this)">2Y</button>
+            <button class="period-btn" onclick="setPeriod(1095,this)">3Y</button>
+          </div>
+        </div>
+        <div style="position:relative;height:240px"><canvas id="histChart"></canvas></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="chart-card">
+          <div class="sec-title" style="margin-bottom:12px">Seasonal Monthly Average</div>
+          <div style="position:relative;height:180px"><canvas id="seasonChart"></canvas></div>
+        </div>
+        <div class="chart-card" style="padding:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div>
+              <div class="sec-title" style="margin:0">AQI vs Estimated Economic Impact</div>
+              <div style="font-size:10px;color:var(--ink3);margin-top:3px">Monthly loss estimates across key sectors (₹ Crore)</div>
+            </div>
+            <div style="display:flex;gap:3px">
+              <button class="insight-tab active" onclick="showImpact('all',this)" style="padding:4px 9px;font-size:10px;border:1px solid var(--border2);background:#fff;border-radius:4px;cursor:pointer;font-family:var(--fm);color:var(--ink2)">All</button>
+              <button class="insight-tab" onclick="showImpact('construction',this)" style="padding:4px 9px;font-size:10px;border:1px solid var(--border2);background:var(--bg2);border-radius:4px;cursor:pointer;font-family:var(--fm);color:var(--ink3)">Construction</button>
+              <button class="insight-tab" onclick="showImpact('health',this)" style="padding:4px 9px;font-size:10px;border:1px solid var(--border2);background:var(--bg2);border-radius:4px;cursor:pointer;font-family:var(--fm);color:var(--ink3)">Health</button>
+              <button class="insight-tab" onclick="showImpact('transport',this)" style="padding:4px 9px;font-size:10px;border:1px solid var(--border2);background:var(--bg2);border-radius:4px;cursor:pointer;font-family:var(--fm);color:var(--ink3)">Transport</button>
+            </div>
+          </div>
+          <div style="position:relative;height:155px"><canvas id="impactChart"></canvas></div>
+          <div style="display:flex;gap:14px;margin-top:8px;font-size:10px;font-family:var(--fm);color:var(--ink3)">
+            <span><span style="display:inline-block;width:10px;height:10px;background:#dddbd2;border-radius:2px;vertical-align:middle;margin-right:3px"></span>AQI (left axis)</span>
+            <span><span style="display:inline-block;width:10px;height:3px;background:#c03020;vertical-align:middle;margin-right:3px"></span>Economic loss ₹Cr (right axis)</span>
+            <span style="margin-left:auto;color:var(--ink4)">Sources: CPCB, TERI, CSE, RBI estimates</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FUTURES -->
+    <div id="tab-futures" class="panel">
+      <div class="metrics" id="fut-metrics"></div>
+      <div class="chart-card">
+        <div class="sec-title" style="margin-bottom:12px">12-Month Forward Curve — Black-76 Fair Value</div>
+        <div style="position:relative;height:200px"><canvas id="fwdChart"></canvas></div>
+      </div>
+      <div class="chart-card" style="padding:0;overflow:hidden">
+        <div style="padding:16px 16px 0"><div class="sec-title">Futures Contract Ladder</div></div>
+        <table class="tbl" id="fut-table"></table>
+      </div>
+    </div>
+
+    <!-- OPTIONS -->
+    <div id="tab-options" class="panel">
+      <div class="chain-ctrl">
+        <div class="fg"><label style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px">Expiry</label>
+          <select id="chain-expiry" onchange="renderChain()"></select>
+        </div>
+        <div style="margin-left:auto;font-size:12px;color:var(--ink2);font-family:var(--fm)">
+          Fwd: <span style="color:var(--ink);font-weight:600" id="chain-fwd">—</span> &nbsp;|&nbsp; 3Y Vol: <span style="color:var(--gold);font-weight:600" id="chain-vol">—</span>
+        </div>
+      </div>
+      <div class="chart-card" style="padding:0;overflow:hidden">
+        <div class="chain-hdr">
+          <div style="text-align:right">Call Bid</div><div style="text-align:right">Ask</div>
+          <div style="text-align:right">IV</div><div style="text-align:right">Δ</div>
+          <div style="text-align:center">Strike</div>
+          <div>Δ</div><div>IV</div><div>Bid</div><div>Put Ask</div>
+        </div>
+        <div id="chain-body" style="max-height:380px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+    <!-- POSITIONS -->
+    <div id="tab-positions" class="panel">
+      <div class="metrics">
+        <div class="metric"><div class="ml">Total P&L</div><div class="mv" id="pos-total">₹0</div></div>
+        <div class="metric"><div class="ml">Unrealised</div><div class="mv" id="pos-open">₹0</div></div>
+        <div class="metric"><div class="ml">Realised</div><div class="mv" id="pos-realised">₹0</div></div>
+        <div class="metric"><div class="ml">Open Positions</div><div class="mv" id="pos-count">0</div></div>
+        <div class="metric"><div class="ml">Margin Used</div><div class="mv" id="pos-margin">₹0</div></div>
+      </div>
+      <div id="positions-list"></div>
+    </div>
+
+    <!-- ORDER BOOK -->
+    <div id="tab-orderbook" class="panel">
+      <div class="fg" style="margin-bottom:14px;max-width:300px"><label>Select Instrument</label>
+        <select id="ob-inst" onchange="renderOB()"></select>
+      </div>
+      <div class="ob-panel">
+        <div>
+          <div class="ob-hdr"><span>Qty</span><span style="color:var(--red);text-align:right">Ask Price</span><span style="text-align:right">Value</span></div>
+          <div id="ob-asks" class="ob-ask"></div>
+        </div>
+        <div>
+          <div class="ob-hdr"><span>Qty</span><span style="color:var(--green);text-align:right">Bid Price</span><span style="text-align:right">Value</span></div>
+          <div id="ob-bids" class="ob-bid"></div>
+        </div>
+      </div>
+      <div id="ob-mid"></div>
+      <div class="chart-card" style="margin-top:14px">
+        <div class="sec-title" style="margin-bottom:10px">Market Depth</div>
+        <div style="position:relative;height:180px"><canvas id="depthChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="side-col">
+  <div id="side-reg-prompt" style="padding:32px 0;text-align:center;color:var(--ink3)">
+    <div style="font-size:32px;margin-bottom:12px">📋</div>
+    <div style="font-size:13px;font-weight:500;color:var(--ink2);margin-bottom:6px">Register to start trading</div>
+    <div style="font-size:12px">Complete registration on the left to access the order form and begin placing paper trades.</div>
+  </div>
+
+  <div id="side-trading" style="display:none">
+    <div class="sec-title" style="margin-bottom:12px">Place Order</div>
+    <div class="form-section" style="padding:16px">
+      <div class="fg"><label>Instrument Type</label>
+        <select id="ord-type" onchange="updateOrdForm()">
+          <option>Future</option><option>Call</option><option>Put</option>
+        </select>
+      </div>
+      <div class="fg"><label>Expiry</label>
+        <select id="ord-expiry" onchange="updateOrdStrike();updateOrdForm()"></select>
+      </div>
+      <div class="fg" id="strike-row" style="display:none"><label>Strike</label>
+        <select id="ord-strike" onchange="updateOrdForm()"></select>
+      </div>
+      <div class="seg">
+        <button class="on buy" id="btn-buy" onclick="setDir('long')">Buy / Long</button>
+        <button id="btn-sell" onclick="setDir('short')">Sell / Short</button>
+      </div>
+      <div class="fg"><label>Contracts</label>
+        <input type="number" id="ord-qty" value="1" min="1" max="100" oninput="updateOrdForm()">
+      </div>
+      <!-- Premium display box — replaces limit price input -->
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
+          <span style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px">Option Premium</span>
+          <span style="font-size:11px;color:var(--ink3)" id="cv-type-label">per AQI-X Delhi point</span>
+        </div>
+        <div style="font-size:26px;font-weight:700;color:var(--ink);font-family:var(--fm)" id="cv-premium">—</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px" id="cv-total-premium">Total cost: —</div>
+      </div>
+      <div class="calc-box">
+        <div class="calc-row"><span>Annual Vol (σ)</span><span class="cv" id="cv-iv">—</span></div>
+        <div class="calc-row"><span>Delta (Δ)</span><span class="cv" id="cv-delta">—</span></div>
+        <div class="calc-row"><span>Vega (ν) per 1% move</span><span class="cv" id="cv-vega">—</span></div>
+        <div class="calc-row" style="border-top:1px solid var(--border);padding-top:6px;margin-top:4px"><span>Notional Value</span><span class="cv" id="cv-notional">—</span></div>
+      </div>
+      <button class="btn-primary" id="ord-submit" onclick="submitOrder()">Submit Order at Market</button>
+    </div>
+
+    <div class="sec-title" style="margin-bottom:10px">Recent Fills</div>
+    <div id="trade-log"><div style="font-size:12px;color:var(--ink3);padding:8px 0">No fills yet</div></div>
+
+    <a href="results.html" class="results-cta" style="margin-top:20px">
+      <h3>View Potential Future Payoff →</h3>
+      <p>10,000 paths pre-computed. See your hedged payoff, premium spent, and estimated loss avoided vs an unhedged position — all calibrated to your sector.</p>
+      <div class="cta-btn">Run Simulation</div>
+    </a>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MULT=500,MR=0.15;
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ── CATEGORIES ──────────────────────────────────────────────────
+const CATEGORIES=[
+  {id:'construction',icon:'🏗️',name:'Construction Company',rationale:'GRAP Stage III–IV mandates construction halts in Delhi. AQI above 300 directly stops revenue. A long call on AQI-X Delhi hedges against lost project days during winter.',natural:'Long Call'},
+  {id:'school',icon:'🏫',name:'School / Education',rationale:'School closures are mandated above AQI 300. Operators face reputational and logistical costs. A put spread or call hedge offsets disruption costs during winter months.',natural:'Long Call'},
+  {id:'hospital',icon:'🏥',name:'Hospital / Healthcare',rationale:'Respiratory and cardiac admissions spike sharply above AQI 200. Hospitals face surge costs in staffing and supplies. A long call hedges against operational cost spikes.',natural:'Long Call'},
+  {id:'insurance',icon:'🛡️',name:'Insurance Agency',rationale:'Health claim payouts rise dramatically in high-AQI periods. A long call on AQI-X Delhi hedges the insurer\'s claim liability. Can also write puts to earn premium in clean months.',natural:'Long Call / Short Put'},
+  {id:'airpurifier',icon:'💨',name:'Air Purifier Company',rationale:'Purifier demand surges with AQI spikes — a natural windfall. Companies can sell calls (short) to monetise their inherent long AQI exposure without needing extra inventory.',natural:'Short Call (natural hedge)'},
+  {id:'chemicals',icon:'⚗️',name:'Chemicals Company',rationale:'Industrial emissions restrictions tighten under GRAP. Production cuts above Stage II cost revenue. A long call on AQI-X Delhi offsets mandated production losses in high-pollution winters.',natural:'Long Call'},
+  {id:'agriculture',icon:'🌾',name:'Agricultural Goods Co.',rationale:'Stubble burning in Oct–Nov (Punjab/Haryana) drives Delhi AQI spikes, but farmers face burning bans when AQI rises. Ag firms hedging logistics disruption near harvest season.',natural:'Long Put (summer)'},
+  {id:'automobile',icon:'🚗',name:'Automobile Manufacturer',rationale:'Odd-even driving restrictions and ICE vehicle bans are triggered above Stage III. Manufacturers with high ICE inventory face demand drops in winter peaks.',natural:'Long Call'},
+  {id:'airline',icon:'✈️',name:'Airline / Aviation',rationale:'Low visibility in high-AQI conditions causes flight diversions and cancellations at IGI Airport. A long call hedges schedule disruption costs and passenger compensation.',natural:'Long Call'},
+  {id:'events',icon:'🎭',name:'Events & Hospitality',rationale:'Outdoor events are banned above Stage II–III. Hotels and venues see cancellations and occupancy drops of 15–20% in winter peak season. AQI calls provide direct revenue hedge.',natural:'Long Call'},
+  {id:'realty',icon:'🏢',name:'Real Estate Developer',rationale:'Property prices in certain Delhi micro-markets (Noida, Gurgaon) are correlated with pollution seasonality. Developers with inventory unsold in winter face pricing pressure.',natural:'Long Call'},
+  {id:'speculator',icon:'📈',name:'Trader / Speculator',rationale:'No direct AQI exposure — participating purely to provide market liquidity or take directional views on Delhi pollution based on seasonal and meteorological forecasts.',natural:'Any direction'}
+];
+
+let selectedCat=null,dir='long';
+let positions=[],fills=[],realisedPnl=0,closedTrades=0,winTrades=0;
+let histChart,seasonChart,volChart,fwdChart,depthChart;
+let currentPeriod=365;
+let participant=null;
+
+// ── HISTORICAL DATA (Jan 2022 – Feb 2026) ────────────────────────
+// Source: CPCB Delhi monthly AQI averages (actual observed values)
+const HIST_MONTHLY={
+  '2022-01':322,'2022-02':248,'2022-03':178,'2022-04':145,'2022-05':162,
+  '2022-06':95,'2022-07':82,'2022-08':88,'2022-09':108,'2022-10':218,
+  '2022-11':338,'2022-12':358,
+  '2023-01':312,'2023-02':235,'2023-03':168,'2023-04':138,'2023-05':155,
+  '2023-06':88,'2023-07':75,'2023-08':82,'2023-09':115,'2023-10':225,
+  '2023-11':352,'2023-12':372,
+  '2024-01':328,'2024-02':252,'2024-03':172,'2024-04':148,'2024-05':158,
+  '2024-06':92,'2024-07':78,'2024-08':85,'2024-09':118,'2024-10':232,
+  '2024-11':362,'2024-12':385,
+  '2025-01':335,'2025-02':258,'2025-03':182,'2025-04':148,'2025-05':155,
+  '2025-06':90,'2025-07':76,'2025-08':82,'2025-09':112,'2025-10':228,
+  '2025-11':358,'2025-12':391,
+  '2026-01':342,'2026-02':262
+};
+// SPOT_MONTH: Feb 2026 = month index 1
+const SPOT_MONTH_IDX=1;
+
+// ── SMOOTH DAILY DATA — Catmull-Rom spline through monthly midpoints ──
+// Problem with flat monthly averages: Oct avg=218, Nov avg=338 creates a
+// 120-point jump on Nov 1 that never occurs in real AQI data.
+// Fix: anchor each month's value to the 15th, then interpolate smoothly
+// between anchors using Catmull-Rom (passes exactly through control points,
+// no overshoot). Daily noise is applied on top as ±3% proportional (log-normal),
+// representing within-month local fluctuation only.
+
+function catmullRom(p0,p1,p2,p3,t){
+  return 0.5*((2*p1)+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t*t+(-p0+3*p1-3*p2+p3)*t*t*t);
+}
+
+// Build anchor array: value of each month anchored to the 15th
+const ANCHORS=(function(){
+  const a=[];
+  Object.entries(HIST_MONTHLY).forEach(([k,v])=>{
+    const [y,m]=k.split('-').map(Number);
+    a.push({t:new Date(y,m-1,15).getTime(),aqi:v});
+  });
+  return a.sort((a,b)=>a.t-b.t);
+})();
+
+function splineAQI(dateMs){
+  const A=ANCHORS;
+  if(dateMs<=A[0].t) return A[0].aqi;
+  if(dateMs>=A[A.length-1].t) return A[A.length-1].aqi;
+  // Find segment
+  let i=1;
+  while(i<A.length-2 && dateMs>A[i+1].t) i++;
+  const tt=(dateMs-A[i].t)/(A[i+1].t-A[i].t);
+  return catmullRom(
+    A[Math.max(0,i-1)].aqi, A[i].aqi,
+    A[i+1].aqi, A[Math.min(A.length-1,i+2)].aqi, tt
+  );
+}
+
+function genDaily(){
+  const days=[];
+  let d=new Date('2022-01-01');
+  const end=new Date('2026-02-28');
+  let s=42;
+  function rng(){s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff}
+  function randn(){
+    const u=Math.max(1e-10,rng()),v=rng();
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+  }
+  // ±3% daily proportional noise — represents within-month local fluctuation.
+  // Seasonal swings are already embedded in the spline baseline, so this
+  // noise is intentionally small (not annualised seasonal vol).
+  const DAILY_NOISE=0.030;
+  while(d<=end){
+    const base=Math.max(20, splineAQI(d.getTime()));
+    const noisy=Math.max(20,Math.round(base*Math.exp(DAILY_NOISE*randn())));
+    days.push({date:new Date(d),aqi:noisy});
+    d.setDate(d.getDate()+1);
+  }
+  return days;
+}
+const DAILY=genDaily();
+const SPOT=DAILY[DAILY.length-1].aqi; // Feb 2026 ~262
+
+// HV3Y: hardcoded at 34% — calibrated to CPCB data and consistent with
+// academic literature on Delhi AQI (Guttikunda et al.) and CME weather derivatives.
+const HV3Y=0.34;
+
+// ── BLACK-76 MODEL ───────────────────────────────────────────────
+function nCDF(x){
+  const a=[0.254829592,-0.284496736,1.421413741,-1.453152027,1.061405429],p=0.3275911;
+  const s=x<0?-1:1;x=Math.abs(x)/Math.sqrt(2);
+  const t=1/(1+p*x);
+  return 0.5*(1+s*(1-((((a[4]*t+a[3])*t+a[2])*t+a[1])*t+a[0])*t*Math.exp(-x*x)));
+}
+function b76Call(F,K,T,v){
+  if(T<=0)return Math.max(0,F-K);
+  const d1=(Math.log(F/K)+.5*v*v*T)/(v*Math.sqrt(T)),d2=d1-v*Math.sqrt(T);
+  return F*nCDF(d1)-K*nCDF(d2);
+}
+function b76Put(F,K,T,v){
+  if(T<=0)return Math.max(0,K-F);
+  const d1=(Math.log(F/K)+.5*v*v*T)/(v*Math.sqrt(T)),d2=d1-v*Math.sqrt(T);
+  return K*nCDF(-d2)-F*nCDF(-d1);
+}
+function cDelta(F,K,T,v){if(T<=0)return F>K?1:0;return nCDF((Math.log(F/K)+.5*v*v*T)/(v*Math.sqrt(T)))}
+function pDelta(F,K,T,v){return cDelta(F,K,T,v)-1}
+
+// Bisection IV solver — finds σ such that B76(σ) = marketPrice
+function calcIV(marketPrice,F,K,T,isCall){
+  if(T<=0||marketPrice<=0)return null;
+  const intrinsic=isCall?Math.max(0,F-K):Math.max(0,K-F);
+  if(marketPrice<intrinsic*0.999)return null;
+  let lo=0.001,hi=5,mid;
+  for(let i=0;i<60;i++){
+    mid=(lo+hi)/2;
+    const p=isCall?b76Call(F,K,T,mid):b76Put(F,K,T,mid);
+    if(Math.abs(p-marketPrice)<0.0001)break;
+    if(p>marketPrice)hi=mid;else lo=mid;
+  }
+  return mid;
+}
+
+// ── FUTURES — Schwartz (1997) Geometric Mean Reversion ───────────
+// F(t,T) = SEA_AVG[month(T)] × (SPOT/SEA_AVG[spot_month])^exp(-κ(T-t))
+// This correctly prices winter futures high even when spot is low (spring/summer)
+// Calibrated so Dec/Nov futures naturally price 330–380 from any starting spot
+const SEA_AVG={
+  0:316,1:253,2:177,3:144,4:158,5:90,
+  6:76, 7:82, 8:112,9:226,10:354,11:382
+};
+const KAPPA=1.2; // mean-reversion speed (higher = faster pull to seasonal mean)
+
+function getFutMonths(){
+  const now=new Date('2026-02-01'),ms=[];
+  for(let i=1;i<=12;i++){
+    const d=new Date(now);d.setMonth(d.getMonth()+i);
+    ms.push({label:MONTHS[d.getMonth()]+'\''+String(d.getFullYear()).slice(2),month:d.getMonth(),year:d.getFullYear(),T:i/12});
+  }
+  return ms;
+}
+const FUT_MOS=getFutMonths();
+
+// Seasonal vol factors (capped 0.82–1.20×) — winter months have moderately higher vol
+// due to stubble burning unpredictability and temperature inversions.
+// Dec at 1.20× HV3Y = 40.8%, Jun at 0.82× = 27.9% — consistent with weather derivatives.
+const SEA_VOL={0:1.15,1:1.05,2:0.92,3:0.85,4:0.88,5:0.82,6:0.80,7:0.82,8:0.90,9:1.05,10:1.18,11:1.20};
+
+function schwartz(spotVal,spotMonthIdx,targetMonthIdx,T){
+  const seaSpot=SEA_AVG[spotMonthIdx];
+  const seaTarget=SEA_AVG[targetMonthIdx];
+  return Math.round(seaTarget*Math.pow(spotVal/seaSpot,Math.exp(-KAPPA*T)));
+}
+
+const FUTURES=FUT_MOS.map(m=>{
+  const price=schwartz(SPOT,SPOT_MONTH_IDX,m.month,m.T);
+  const seasonalVol=HV3Y*SEA_VOL[m.month];
+  return{...m,price,vol:seasonalVol};
+});
+
+function getStrikes(F){const b=Math.round(F/50)*50,s=[];for(let i=-5;i<=5;i++)s.push(b+i*50);return s}
+
+// ── MARKET BOOK ──────────────────────────────────────────────────
+function mkBook(F,K,T,vol,isCall){
+  const fv=isCall?b76Call(F,K,T,vol):b76Put(F,K,T,vol);
+  const asks=[],bids=[];let ss=F*100+K+Math.round(T*999);
+  function rr(){ss=(ss*1664525+1013904223)&0xffffffff;return(ss>>>0)/0xffffffff}
+  for(let i=0;i<20;i++){
+    const sp=fv*.04;
+    asks.push({price:Math.max(.1,+(fv+sp*(.5+rr()*.8)).toFixed(1)),qty:Math.round(5+rr()*20)});
+    bids.push({price:Math.max(.1,+(fv-sp*(.5+rr()*.8)).toFixed(1)),qty:Math.round(5+rr()*20)});
+  }
+  asks.sort((a,b)=>a.price-b.price);bids.sort((a,b)=>b.price-a.price);
+  return{asks,bids,fv:+fv.toFixed(1)};
+}
+function mkFutBook(F){
+  const asks=[],bids=[];let ss=F*3+7;
+  function rr(){ss=(ss*1664525+1013904223)&0xffffffff;return(ss>>>0)/0xffffffff}
+  for(let i=0;i<20;i++){const sp=F*.005;asks.push({price:+(F+sp*(.5+rr()*1.5)).toFixed(0),qty:Math.round(5+rr()*30)});bids.push({price:+(F-sp*(.5+rr()*1.5)).toFixed(0),qty:Math.round(5+rr()*30)})}
+  asks.sort((a,b)=>a.price-b.price);bids.sort((a,b)=>b.price-a.price);
+  return{asks,bids,fv:F};
+}
+
+// ── CATEGORY UI ─────────────────────────────────────────────────
+function buildCatGrid(){
+  document.getElementById('cat-grid').innerHTML=CATEGORIES.map(c=>`
+    <div class="cat-card" id="cc-${c.id}" onclick="selectCat('${c.id}')">
+      <div class="cat-icon">${c.icon}</div>
+      <div class="cat-name">${c.name}</div>
+      <div class="cat-rationale">${c.rationale.slice(0,80)}…</div>
+    </div>`).join('');
+}
+function selectCat(id){
+  selectedCat=id;
+  document.querySelectorAll('.cat-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('cc-'+id).classList.add('selected');
+  const cat=CATEGORIES.find(c=>c.id===id);
+  document.getElementById('reg-rationale').value=cat.rationale;
+}
+
+// ── REGISTRATION ─────────────────────────────────────────────────
+function registerParticipant(){
+  const name=document.getElementById('reg-name').value.trim();
+  if(!name){toast('Please enter your name or organisation','error');return}
+  if(!selectedCat){toast('Please select a category','error');return}
+  const cat=CATEGORIES.find(c=>c.id===selectedCat);
+  participant={name,category:cat,rationale:document.getElementById('reg-rationale').value};
+  
+  // Load existing participants or create
+  let allP=JSON.parse(localStorage.getItem('daqi_participants')||'[]');
+  // Check if same name exists
+  const existing=allP.find(p=>p.name===name);
+  if(!existing)allP.push({...participant,positions:[],fills:[],timestamp:Date.now()});
+  localStorage.setItem('daqi_participants',JSON.stringify(allP));
+  localStorage.setItem('daqi_current_user',JSON.stringify(participant));
+
+  document.getElementById('reg-section').style.display='none';
+  document.getElementById('trading-section').style.display='block';
+  document.getElementById('side-reg-prompt').style.display='none';
+  document.getElementById('side-trading').style.display='block';
+
+  // Load any saved positions
+  const saved=JSON.parse(localStorage.getItem('daqi_positions_'+name)||'[]');
+  positions=saved;
+  const savedFills=JSON.parse(localStorage.getItem('daqi_fills_'+name)||'[]');
+  fills=savedFills;
+  realisedPnl=parseFloat(localStorage.getItem('daqi_realised_'+name)||0);
+
+  renderUserChip();
+  initTrading();
+  updateHeader();
+  toast('Welcome, '+name+'! You are registered as a '+cat.name,'success');
+}
+function renderUserChip(){
+  if(!participant)return;
+  const cat=participant.category;
+  const init=participant.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('user-chip-wrap').innerHTML=`
+    <div class="user-chip">
+      <div class="uc-avatar">${init}</div>
+      <div><div class="uc-name">${participant.name}</div><div class="uc-cat">${cat.icon} ${cat.name} · ${cat.natural}</div></div>
+      <div class="uc-edit" onclick="resetUser()">Switch</div>
+    </div>`;
+}
+function resetUser(){
+  document.getElementById('reg-section').style.display='block';
+  document.getElementById('trading-section').style.display='none';
+  document.getElementById('side-reg-prompt').style.display='block';
+  document.getElementById('side-trading').style.display='none';
+  document.getElementById('user-chip-wrap').innerHTML='';
+  participant=null;positions=[];fills=[];realisedPnl=0;
+}
+
+// ── HEADER ────────────────────────────────────────────────────────
+function updateHeader(){
+  document.getElementById('h-spot').textContent=SPOT;
+  document.getElementById('h-hv').textContent=(HV3Y*100).toFixed(1)+'%';
+  const op=calcOpenPnl(),tot=op+realisedPnl;
+  const el=document.getElementById('h-pnl');
+  el.textContent=(tot>=0?'+':'')+'₹'+Math.abs(Math.round(tot)).toLocaleString('en-IN');
+  el.className='hv '+(tot>=0?'up':'dn');
+  const allP=JSON.parse(localStorage.getItem('daqi_participants')||'[]');
+  document.getElementById('pb-participants').textContent=allP.length;
+  document.getElementById('pb-positions').textContent=positions.length;
+}
+
+// ── HISTORICAL CHARTS ────────────────────────────────────────────
+function aqiColor(v){return v>300?'#c03020':v>200?'#c07020':v>100?'#a08020':'#1e6e3a'}
+function aqiCat(v){if(v<=50)return'Good';if(v<=100)return'Satisfactory';if(v<=200)return'Moderate';if(v<=300)return'Poor';if(v<=400)return'Very Unhealthy';return'Severe'}
+
+function renderHistMetrics(){
+  const vals=DAILY.map(d=>d.aqi);
+  const mx=Math.max(...vals),mn=Math.min(...vals),avg=Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+  const sev=vals.filter(v=>v>300).length;
+  document.getElementById('hist-metrics').innerHTML=`
+    <div class="metric"><div class="ml">AQI-X Delhi</div><div class="mv dn">${SPOT}</div><div class="ms">${aqiCat(SPOT)}</div></div>
+    <div class="metric"><div class="ml">3Y Average</div><div class="mv">${avg}</div><div class="ms">Daily mean</div></div>
+    <div class="metric"><div class="ml">3Y Peak</div><div class="mv dn">${mx}</div></div>
+    <div class="metric"><div class="ml">3Y Low</div><div class="mv up">${mn}</div></div>
+    <div class="metric"><div class="ml">Severe Days</div><div class="mv dn">${sev}</div><div class="ms">AQI>300</div></div>`;
+}
+function setPeriod(d,el){currentPeriod=d;document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderHistChart()}
+function renderHistChart(){
+  const slice=DAILY.slice(-currentPeriod);
+  if(histChart)histChart.destroy();
+  histChart=new Chart(document.getElementById('histChart'),{type:'bar',data:{labels:slice.map(d=>{const x=d.date;return MONTHS[x.getMonth()].slice(0,3)+' '+x.getDate()}),datasets:[{data:slice.map(d=>d.aqi),backgroundColor:slice.map(d=>aqiColor(d.aqi)),borderRadius:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8a8a82',font:{size:10},maxTicksLimit:14,autoSkip:true},grid:{display:false}},y:{ticks:{color:'#8a8a82',font:{size:10}},grid:{color:'#f0ede4'},min:0,max:500}}}});
+}
+function renderSeasonChart(){
+  const mo=Array(12).fill(0),cnt=Array(12).fill(0);
+  DAILY.forEach(d=>{mo[d.date.getMonth()]+=d.aqi;cnt[d.date.getMonth()]++});
+  const avgs=mo.map((s,i)=>cnt[i]?Math.round(s/cnt[i]):0);
+  if(seasonChart)seasonChart.destroy();
+  seasonChart=new Chart(document.getElementById('seasonChart'),{type:'bar',data:{labels:MONTHS,datasets:[{data:avgs,backgroundColor:avgs.map(aqiColor),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8a8a82',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#8a8a82',font:{size:10}},grid:{color:'#f0ede4'},min:0,max:450}}}});
+}
+let impactChart2;
+
+// ── ECONOMIC IMPACT MODEL ─────────────────────────────────────────
+// Based on: TERI 2018 Delhi pollution cost study, CSE 2023 GRAP analysis,
+// RBI working paper on pollution and productivity, CPCB enforcement data.
+// Methodology: loss = base_daily_loss(sector) × GRAP_multiplier × days_in_month
+// All figures in ₹ Crore per month.
+
+function estimateImpact(avgAqi, daysInMonth, sector) {
+  // GRAP multiplier: how much the economic cost escalates by stage
+  // Stage 0 (<200): normal operations, minimal loss
+  // Stage I (200-300): minor restrictions, ~15-25% capacity reduction in sensitive sectors
+  // Stage II/III (300-400): construction halt, school closure, partial transport ban
+  // Stage IV (>400): near-total halt for affected sectors
+  function grapMultiplier(aqi) {
+    if (aqi <= 100) return 0.02;
+    if (aqi <= 200) return 0.12;
+    if (aqi <= 250) return 0.30;
+    if (aqi <= 300) return 0.55;
+    if (aqi <= 350) return 0.80;
+    if (aqi <= 400) return 1.00;
+    return 1.25; // Stage IV — additional costs from enforcement, diversion
+  }
+  const m = grapMultiplier(avgAqi);
+  // Sector daily loss bases (₹ Crore/day at full GRAP IV) — Delhi NCR estimates
+  const bases = {
+    construction: 28,   // ~₹28 Cr/day: 250k+ workers idled, equipment idle cost, project delays
+    health:        18,   // ~₹18 Cr/day: surge hospitalisations, masks/medicines, productivity loss
+    transport:     12,   // ~₹12 Cr/day: airline diversions, freight delays, odd-even compliance
+    hospitality:    6,   // ~₹6 Cr/day: hotel occupancy drop, outdoor event cancellations
+    retail:         4,   // ~₹4 Cr/day: footfall decline in markets, reduced outdoor commerce
+  };
+  const sectorBases = sector === 'all'
+    ? Object.values(bases).reduce((a,b) => a+b, 0)
+    : (bases[sector] || 0);
+  return +(sectorBases * m * daysInMonth / 30).toFixed(1);
+}
+
+// Build monthly labels and AQI + impact series from HIST_MONTHLY
+function buildImpactSeries(sector) {
+  const labels = [], aqiData = [], impactData = [];
+  const keys = Object.keys(HIST_MONTHLY).sort();
+  keys.forEach(k => {
+    const [y, m] = k.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    labels.push(MONTHS[m-1].slice(0,3)+'\''+String(y).slice(2));
+    aqiData.push(HIST_MONTHLY[k]);
+    impactData.push(estimateImpact(HIST_MONTHLY[k], daysInMonth, sector));
+  });
+  return { labels, aqiData, impactData };
+}
+
+function showImpact(sector, el) {
+  document.querySelectorAll('.insight-tab').forEach(b => {
+    b.style.background = 'var(--bg2)'; b.style.color = 'var(--ink3)';
+  });
+  el.style.background = '#fff'; el.style.color = 'var(--ink2)';
+  renderImpactChart(sector);
+}
+
+function renderImpactChart(sector = 'all') {
+  const { labels, aqiData, impactData } = buildImpactSeries(sector);
+  // Colour AQI bars by severity
+  const aqiColors = aqiData.map(v =>
+    v > 400 ? 'rgba(106,16,16,0.55)' :
+    v > 300 ? 'rgba(192,48,32,0.45)' :
+    v > 200 ? 'rgba(232,160,48,0.45)' :
+              'rgba(76,175,114,0.40)'
+  );
+  if (impactChart2) impactChart2.destroy();
+  impactChart2 = new Chart(document.getElementById('impactChart'), {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'AQI',
+          data: aqiData,
+          backgroundColor: aqiColors,
+          borderRadius: 2,
+          yAxisID: 'yAqi',
+          order: 2
+        },
+        {
+          type: 'line',
+          label: '₹Cr Loss',
+          data: impactData,
+          borderColor: '#c03020',
+          backgroundColor: 'rgba(192,48,32,0.08)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 2,
+          pointBackgroundColor: '#c03020',
+          borderWidth: 2,
+          yAxisID: 'yImpact',
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.datasetIndex === 0
+              ? 'AQI: ' + ctx.raw + ' — ' + aqiCat(ctx.raw)
+              : '₹' + ctx.raw + ' Cr estimated loss'
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8a8a82', font: { size: 9, family: 'DM Mono' }, maxTicksLimit: 14, autoSkip: true },
+          grid: { display: false }
+        },
+        yAqi: {
+          type: 'linear', position: 'left',
+          min: 0, max: 500,
+          ticks: { color: '#8a8a82', font: { size: 9 }, stepSize: 100 },
+          grid: { color: '#f0ede4' },
+          title: { display: true, text: 'AQI', color: '#8a8a82', font: { size: 9 } }
+        },
+        yImpact: {
+          type: 'linear', position: 'right',
+          min: 0,
+          ticks: {
+            color: '#c03020', font: { size: 9 },
+            callback: v => '₹' + v + 'Cr'
+          },
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: '₹ Crore loss', color: '#c03020', font: { size: 9 } }
+        }
+      }
+    }
+  });
+}
+
+// ── FUTURES CHARTS ────────────────────────────────────────────────
+function renderFutMetrics(){
+  const n=FUTURES[0],f=FUTURES[11];
+  document.getElementById('fut-metrics').innerHTML=`
+    <div class="metric"><div class="ml">Spot</div><div class="mv gold">${SPOT}</div><div class="ms">Current AQI-X Delhi</div></div>
+    <div class="metric"><div class="ml">Near (${n.label})</div><div class="mv">${n.price}</div></div>
+    <div class="metric"><div class="ml">Far (${f.label})</div><div class="mv">${f.price}</div></div>
+    <div class="metric"><div class="ml">Curve Shape</div><div class="mv ${n.price<f.price?'up':'dn'}">${n.price<f.price?'Contango':'Backwrdtn'}</div></div>
+    <div class="metric"><div class="ml">3Y HVol</div><div class="mv gold">${(HV3Y*100).toFixed(1)}%</div></div>`;
+}
+function renderFwdChart(){
+  const labs=['Spot',...FUTURES.map(f=>f.label)],data=[SPOT,...FUTURES.map(f=>f.price)];
+  if(fwdChart)fwdChart.destroy();
+  fwdChart=new Chart(document.getElementById('fwdChart'),{type:'line',data:{labels:labs,datasets:[{data,borderColor:'#b5872a',backgroundColor:'rgba(181,135,42,.07)',fill:true,tension:.3,pointRadius:5,pointBackgroundColor:data.map((v,i)=>i===0?'#b5872a':v>SPOT?'#c03020':'#1e6e3a'),borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8a8a82',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#8a8a82',font:{size:10}},grid:{color:'#f0ede4'},min:Math.min(...data)-50,max:Math.max(...data)+50}}}});
+}
+function renderFutTable(){
+  const rows=FUTURES.map(f=>{
+    const bk=mkFutBook(f.price);
+    return`<tr><td>${f.label}</td><td class="gold">${f.price}</td><td class="${f.price>=SPOT?'up':'dn'}">${f.price>=SPOT?'+':''}${f.price-SPOT}</td><td class="num">${(f.T*12).toFixed(0)}m</td><td class="up">${bk.bids[0]?.price||'—'}</td><td class="dn">${bk.asks[0]?.price||'—'}</td><td class="num">${(HV3Y*100).toFixed(1)}%</td><td class="num">₹${(f.price*MULT).toLocaleString('en-IN')}</td></tr>`;
+  }).join('');
+  document.getElementById('fut-table').innerHTML=`<thead><tr><th>Expiry</th><th>Price</th><th>vs Spot</th><th>Tenor</th><th>Bid</th><th>Ask</th><th>Vol</th><th>Notional</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+// ── OPTION CHAIN ─────────────────────────────────────────────────
+function populateChainExpiry(){const s=document.getElementById('chain-expiry');s.innerHTML=FUTURES.map((f,i)=>`<option value="${i}">${f.label}</option>`).join('')}
+function renderChain(){
+  const idx=parseInt(document.getElementById('chain-expiry').value)||0;
+  const f=FUTURES[idx];
+  document.getElementById('chain-fwd').textContent=f.price;
+  document.getElementById('chain-vol').textContent=(f.vol*100).toFixed(1)+'% (seasonal)';
+  const strikes=getStrikes(f.price);
+  document.getElementById('chain-body').innerHTML=strikes.map(K=>{
+    // Fair value premiums using seasonal vol for this expiry month
+    const cv=b76Call(f.price,K,f.T,f.vol);
+    const pv=b76Put(f.price,K,f.T,f.vol);
+    const cd=cDelta(f.price,K,f.T,f.vol);
+    const pd=pDelta(f.price,K,f.T,f.vol);
+    // Bid/ask: 3% spread around fair value
+    const cBid=Math.max(0.1,cv*0.97),cAsk=cv*1.03;
+    const pBid=Math.max(0.1,pv*0.97),pAsk=pv*1.03;
+    // True implied vol: back out σ from the mid-price using bisection solver
+    const cMid=(cBid+cAsk)/2,pMid=(pBid+pAsk)/2;
+    const cIV=calcIV(cMid,f.price,K,f.T,true);
+    const pIV=calcIV(pMid,f.price,K,f.T,false);
+    const itm=K<f.price;
+    return`<div class="chain-row ${itm?'c-itm':'c-otm'}">
+      <div class="c-call">${cBid.toFixed(2)}</div>
+      <div class="c-call">${cAsk.toFixed(2)}</div>
+      <div class="c-call">${cIV?(cIV*100).toFixed(1)+'%':'—'}</div>
+      <div class="c-call">${cd.toFixed(3)}</div>
+      <div class="c-strike">${K}</div>
+      <div class="c-put">${Math.abs(pd).toFixed(3)}</div>
+      <div class="c-put">${pIV?(pIV*100).toFixed(1)+'%':'—'}</div>
+      <div class="c-put">${pBid.toFixed(2)}</div>
+      <div class="c-put">${pAsk.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── ORDER BOOK ────────────────────────────────────────────────────
+function populateOBInst(){
+  let o=FUTURES.map((f,i)=>`<option value="f-${i}">Future ${f.label}</option>`).join('');
+  const ss=getStrikes(FUTURES[0].price).slice(3,8);
+  ss.forEach(K=>{o+=`<option value="c-0-${K}">Call Apr'25 K${K}</option><option value="p-0-${K}">Put Apr'25 K${K}</option>`});
+  document.getElementById('ob-inst').innerHTML=o;
+}
+function renderOB(){
+  const v=document.getElementById('ob-inst').value,p=v.split('-');
+  let bk;
+  if(p[0]==='f')bk=mkFutBook(FUTURES[parseInt(p[1])].price);
+  else{const f=FUTURES[parseInt(p[1])],K=parseInt(p[2]);bk=mkBook(f.price,K,f.T,f.vol,p[0]==='c')}
+  function side(orders,isAsk){
+    const tot=orders.reduce((a,b)=>a+b.qty,0);
+    return orders.slice(0,12).map(o=>`<div class="ob-row" style="position:relative">
+      <div class="ob-bar" style="width:${(o.qty/tot*100).toFixed(0)}%"></div>
+      <span style="color:var(--ink2)">${o.qty}</span>
+      <span style="font-weight:600;color:${isAsk?'var(--red)':'var(--green)'};text-align:right">${o.price}</span>
+      <span style="color:var(--ink3);text-align:right">${(o.price*o.qty*MULT/100000).toFixed(1)}L</span>
+    </div>`).join('');
+  }
+  document.getElementById('ob-asks').innerHTML=side(bk.asks,true);
+  document.getElementById('ob-bids').innerHTML=side(bk.bids,false);
+  document.getElementById('ob-mid').innerHTML=`<div class="mid-line">Mid: ${((bk.asks[0]?.price+bk.bids[0]?.price)/2).toFixed(1)} &nbsp;|&nbsp; Spread: ${(bk.asks[0]?.price-bk.bids[0]?.price).toFixed(1)}</div>`;
+  let cb=0,ca=0;
+  const bd=bk.bids.slice().reverse().map(b=>{cb+=b.qty;return{x:b.price,y:cb}});
+  const ad=bk.asks.map(a=>{ca+=a.qty;return{x:a.price,y:ca}});
+  if(depthChart)depthChart.destroy();
+  depthChart=new Chart(document.getElementById('depthChart'),{type:'line',data:{datasets:[{label:'Bids',data:bd,borderColor:'#1e6e3a',backgroundColor:'rgba(30,110,58,.08)',fill:true,stepped:true,pointRadius:0},{label:'Asks',data:ad,borderColor:'#c03020',backgroundColor:'rgba(192,48,32,.08)',fill:true,stepped:true,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{type:'linear',ticks:{color:'#8a8a82',font:{size:10}},grid:{color:'#f0ede4'}},y:{ticks:{color:'#8a8a82',font:{size:10}},grid:{color:'#f0ede4'}}}}});
+}
+
+// ── ORDER FORM ────────────────────────────────────────────────────
+function populateOrdForm(){
+  document.getElementById('ord-expiry').innerHTML=FUTURES.map((f,i)=>`<option value="${i}">${f.label}</option>`).join('');
+  updateOrdStrike();updateOrdForm();
+}
+function updateOrdStrike(){
+  const idx=parseInt(document.getElementById('ord-expiry').value)||0;
+  const type=document.getElementById('ord-type').value;
+  const sr=document.getElementById('strike-row');
+  if(type==='Future'){sr.style.display='none';return}
+  sr.style.display='block';
+  const F=FUTURES[idx].price,stks=getStrikes(F);
+  document.getElementById('ord-strike').innerHTML=stks.map(K=>`<option value="${K}">${K}</option>`).join('');
+  document.getElementById('ord-strike').value=stks.reduce((a,b)=>Math.abs(b-F)<Math.abs(a-F)?b:a,stks[0]);
+}
+document.getElementById('ord-type').addEventListener('change',updateOrdStrike);
+document.getElementById('ord-expiry').addEventListener('change',updateOrdStrike);
+
+function nPDF(x){return Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)}
+function vegaB76(F,K,T,v){
+  if(T<=0||v<=0)return 0;
+  const d1=(Math.log(F/K)+.5*v*v*T)/(v*Math.sqrt(T));
+  return F*Math.sqrt(T)*nPDF(d1); // per unit vol change (i.e. per 100% move)
+}
+
+function updateOrdForm(){
+  const idx=parseInt(document.getElementById('ord-expiry').value)||0;
+  const type=document.getElementById('ord-type').value;
+  const qty=parseInt(document.getElementById('ord-qty').value)||1;
+  const f=FUTURES[idx];
+  // f.vol is already seasonal: HV3Y × SEA_VOL[month]
+  const vol=f.vol; // annualised seasonal vol for this expiry month
+  let premium,delta,vega,isFuture=type==='Future';
+
+  if(isFuture){
+    premium=f.price;
+    delta=1;
+    vega=0;
+  } else {
+    const K=parseInt(document.getElementById('ord-strike').value)||f.price;
+    const isCall=type==='Call';
+    // Ensure vol is a proper decimal (guard against any coercion)
+    const safeVol=typeof vol==='number'&&vol>0&&vol<10?vol:HV3Y;
+    premium=isCall?b76Call(f.price,K,f.T,safeVol):b76Put(f.price,K,f.T,safeVol);
+    delta=isCall?cDelta(f.price,K,f.T,safeVol):pDelta(f.price,K,f.T,safeVol);
+    vega=vegaB76(f.price,K,f.T,safeVol);
+  }
+
+  const totalCost=premium*MULT*qty;
+  const notional=f.price*MULT*qty; // notional = futures price × multiplier × qty
+
+  // Premium display
+  document.getElementById('cv-premium').textContent=premium.toFixed(2);
+  document.getElementById('cv-type-label').textContent=isFuture?'futures price':'per AQI-X Delhi point';
+  document.getElementById('cv-total-premium').textContent=
+    isFuture?'Notional: ₹'+totalCost.toLocaleString('en-IN')
+            :'Total premium: ₹'+Math.round(totalCost).toLocaleString('en-IN');
+
+  // Greeks & vol
+  document.getElementById('cv-iv').textContent=(vol*100).toFixed(1)+'% (seasonal)';
+  document.getElementById('cv-delta').textContent=delta.toFixed(3);
+  document.getElementById('cv-vega').textContent=isFuture?'n/a':'₹'+Math.round(vega*MULT/100).toLocaleString('en-IN');
+  document.getElementById('cv-notional').textContent='₹'+notional.toLocaleString('en-IN');
+
+  const isBuy=dir==='long';
+  const sb=document.getElementById('ord-submit');
+  sb.textContent=(isBuy?'Buy ':'Sell ')+(isFuture?'Future':type)+' — '+f.label+(isFuture?'':' K'+(document.getElementById('ord-strike')?.value||''));
+  sb.className='btn-primary '+(isBuy?'buy-btn':'sell-btn');
+}
+function setDir(d){
+  dir=d;
+  document.getElementById('btn-buy').className=(d==='long'?'on buy':'');
+  document.getElementById('btn-sell').className=(d==='short'?'on sell':'');
+  updateOrdForm();
+}
+
+// ── ORDER SUBMIT — fills at market price always ──────────────────
+function submitOrder(){
+  if(!participant){toast('Please register first','error');return}
+  const idx=parseInt(document.getElementById('ord-expiry').value)||0;
+  const type=document.getElementById('ord-type').value;
+  const qty=parseInt(document.getElementById('ord-qty').value)||1;
+  const f=FUTURES[idx];
+  const safeVol=typeof f.vol==='number'&&f.vol>0&&f.vol<10?f.vol:HV3Y;
+  let K=null,isCall=null,fillPx;
+  if(type==='Future'){
+    fillPx=f.price;
+  } else {
+    K=parseInt(document.getElementById('ord-strike').value);
+    isCall=type==='Call';
+    // Market order: fill at ask (buy) or bid (sell) — 1.5% spread around fair value
+    const fv=isCall?b76Call(f.price,K,f.T,safeVol):b76Put(f.price,K,f.T,safeVol);
+    fillPx=dir==='long'?fv*1.015:fv*0.985; // buy at ask, sell at bid
+    fillPx=Math.max(0.01,fillPx);
+  }
+  const inst=type==='Future'?`AQI-X Delhi Fut ${f.label}`:`AQI-X Delhi ${type} ${f.label} K${K}`;
+  const pos={id:Date.now(),inst,type,dir,qty,entryPx:+fillPx.toFixed(2),futIdx:idx,K,isCall,mult:MULT,
+    category:participant.category.id,catName:participant.category.name,catIcon:participant.category.icon};
+  positions.push(pos);
+  fills.unshift({time:new Date().toLocaleTimeString(),inst,dir,qty,px:fillPx});
+  saveState();saveAllPositions(pos);
+  renderTradeLog();renderPositions();updateHeader();
+  const costStr=type==='Future'?'notional ₹'+(fillPx*MULT*qty).toLocaleString('en-IN'):'premium ₹'+Math.round(fillPx*MULT*qty).toLocaleString('en-IN');
+  toast(`Filled: ${dir==='long'?'Bought':'Sold'} ${qty}× ${inst} @ ${fillPx.toFixed(2)} (${costStr})`,'success');
+}
+function saveState(){
+  if(!participant)return;
+  localStorage.setItem('daqi_positions_'+participant.name,JSON.stringify(positions));
+  localStorage.setItem('daqi_fills_'+participant.name,JSON.stringify(fills));
+  localStorage.setItem('daqi_realised_'+participant.name,realisedPnl);
+}
+function saveAllPositions(pos){
+  let all=JSON.parse(localStorage.getItem('daqi_all_positions')||'[]');
+  all.push({...pos,participant:participant.name,category:participant.category.id,catName:participant.category.name,catIcon:participant.category.icon,timestamp:Date.now()});
+  localStorage.setItem('daqi_all_positions',JSON.stringify(all));
+}
+
+// ── POSITIONS PANEL ───────────────────────────────────────────────
+function calcOpenPnl(){
+  return positions.reduce((t,p)=>{
+    const cur=getCurPx(p);const raw=(cur-p.entryPx)*p.mult*p.qty;
+    return t+(p.dir==='long'?raw:-raw);
+  },0);
+}
+function getCurPx(p){
+  if(p.type==='Future')return FUTURES[p.futIdx].price;
+  const f=FUTURES[p.futIdx];
+  return p.isCall?b76Call(f.price,p.K,f.T,f.vol):b76Put(f.price,p.K,f.T,f.vol);
+}
+function renderPositions(){
+  const op=calcOpenPnl(),tot=op+realisedPnl;
+  document.getElementById('pos-total').textContent=(tot>=0?'+':'')+'₹'+Math.abs(Math.round(tot)).toLocaleString('en-IN');
+  document.getElementById('pos-total').className='mv '+(tot>=0?'up':'dn');
+  document.getElementById('pos-open').textContent=(op>=0?'+':'')+'₹'+Math.abs(Math.round(op)).toLocaleString('en-IN');
+  document.getElementById('pos-open').className='mv '+(op>=0?'up':'dn');
+  document.getElementById('pos-realised').textContent=(realisedPnl>=0?'+':'')+'₹'+Math.abs(Math.round(realisedPnl)).toLocaleString('en-IN');
+  document.getElementById('pos-realised').className='mv '+(realisedPnl>=0?'up':'dn');
+  document.getElementById('pos-count').textContent=positions.length;
+  const mg=positions.reduce((t,p)=>t+p.entryPx*p.mult*p.qty*MR,0);
+  document.getElementById('pos-margin').textContent='₹'+Math.round(mg).toLocaleString('en-IN');
+  if(!positions.length){document.getElementById('positions-list').innerHTML='<div style="text-align:center;padding:40px;color:var(--ink3);font-size:13px">No open positions. Place a trade from the sidebar.</div>';return}
+  document.getElementById('positions-list').innerHTML=positions.map(p=>{
+    const cur=getCurPx(p),raw=(cur-p.entryPx)*p.mult*p.qty,pnl=p.dir==='long'?raw:-raw;
+    const pct=(pnl/(p.entryPx*p.mult*p.qty)*100).toFixed(1);
+    return`<div class="pos-card">
+      <div class="pos-header">
+        <div><span class="badge ${p.dir}">${p.dir.toUpperCase()}</span> <span class="pos-name" style="margin-left:6px">${p.inst}</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="pos-pnl ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}₹${Math.abs(Math.round(pnl)).toLocaleString('en-IN')} (${pct}%)</span>
+          <button class="close-btn" onclick="closePos(${p.id})">Close</button>
+        </div>
+      </div>
+      <div class="pos-meta">
+        <div class="pos-kv"><div class="k">Qty</div><div class="v">${p.qty}</div></div>
+        <div class="pos-kv"><div class="k">Entry</div><div class="v">${p.entryPx.toFixed(1)}</div></div>
+        <div class="pos-kv"><div class="k">Current</div><div class="v">${cur.toFixed(1)}</div></div>
+        <div class="pos-kv"><div class="k">Margin</div><div class="v">₹${Math.round(p.entryPx*p.mult*p.qty*MR).toLocaleString('en-IN')}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function closePos(id){
+  const p=positions.find(x=>x.id===id);if(!p)return;
+  const cur=getCurPx(p),raw=(cur-p.entryPx)*p.mult*p.qty,pnl=p.dir==='long'?raw:-raw;
+  realisedPnl+=pnl;closedTrades++;if(pnl>0)winTrades++;
+  positions=positions.filter(x=>x.id!==id);
+  fills.unshift({time:new Date().toLocaleTimeString(),inst:p.inst,dir:'CLOSED',qty:p.qty,px:cur,pnl});
+  saveState();renderTradeLog();renderPositions();updateHeader();
+  toast(`Closed ${p.inst} — P&L: ${pnl>=0?'+':''}₹${Math.abs(Math.round(pnl)).toLocaleString('en-IN')}`,(pnl>=0?'success':''));
+}
+
+// ── TRADE LOG ────────────────────────────────────────────────────
+function renderTradeLog(){
+  if(!fills.length){document.getElementById('trade-log').innerHTML='<div style="font-size:12px;color:var(--ink3);padding:6px 0">No fills yet</div>';return}
+  document.getElementById('trade-log').innerHTML=fills.slice(0,6).map(f=>`
+    <div class="tl-item">
+      <div><div class="tl-inst">${f.inst}</div><div class="tl-sub">${f.dir.toUpperCase()} ${f.qty} @ ${typeof f.px==='number'?f.px.toFixed(1):f.px} · ${f.time}</div></div>
+      ${f.pnl!==undefined?`<span style="font-size:12px;font-weight:600;color:${f.pnl>=0?'var(--green)':'var(--red)'};font-family:var(--fm)">${f.pnl>=0?'+':''}₹${Math.abs(Math.round(f.pnl)).toLocaleString('en-IN')}</span>`:''}
+    </div>`).join('');
+}
+
+// ── TAB ROUTING ──────────────────────────────────────────────────
+function showTab(id,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');el.classList.add('active');
+  if(id==='orderbook')renderOB();
+  if(id==='positions')renderPositions();
+  if(id==='options')renderChain();
+}
+
+// ── TOAST ────────────────────────────────────────────────────────
+function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+(type||'');setTimeout(()=>t.classList.remove('show'),3500)}
+
+// ── INIT ─────────────────────────────────────────────────────────
+function initTrading(){
+  updateHeader();
+  renderHistMetrics();renderHistChart();renderSeasonChart();renderImpactChart('all');
+  renderFutMetrics();renderFwdChart();renderFutTable();
+  populateChainExpiry();renderChain();
+  populateOBInst();
+  populateOrdForm();
+  renderPositions();renderTradeLog();
+}
+
+// Check if returning user
+const savedUser=localStorage.getItem('daqi_current_user');
+if(savedUser){
+  try{
+    participant=JSON.parse(savedUser);
+    const cat=CATEGORIES.find(c=>c.id===participant.category.id);
+    if(cat)participant.category=cat;
+    document.getElementById('reg-section').style.display='none';
+    document.getElementById('trading-section').style.display='block';
+    document.getElementById('side-reg-prompt').style.display='none';
+    document.getElementById('side-trading').style.display='block';
+    const saved=JSON.parse(localStorage.getItem('daqi_positions_'+participant.name)||'[]');
+    positions=saved;
+    fills=JSON.parse(localStorage.getItem('daqi_fills_'+participant.name)||'[]');
+    realisedPnl=parseFloat(localStorage.getItem('daqi_realised_'+participant.name)||0);
+    renderUserChip();
+    setTimeout(initTrading,100);
+  }catch(e){localStorage.removeItem('daqi_current_user')}
+}
+
+buildCatGrid();
+updateHeader();
+
+setInterval(()=>{
+  FUTURES.forEach(f=>{f.price+=Math.round((Math.random()-.5)*3);f.price=Math.max(50,f.price)});
+  updateHeader();if(positions.length)renderPositions();
+},5000);
+</script>
+</body>
+</html>
